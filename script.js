@@ -695,9 +695,9 @@ function moveAt(x, y) {
 
 
     const minX = containerRect.left;
-    const maxX = containerRect.right - partWidth;
+    const maxX = containerRect.right;
     const minY = containerRect.top;
-    const maxY = containerRect.bottom - partHeight;
+    const maxY = containerRect.bottom;
 
     x = Math.max(minX, Math.min(x, maxX));
     y = Math.max(minY, Math.min(y, maxY));
@@ -1759,6 +1759,8 @@ function removeMover(part) {
 }
 function moveParts() {
     const rect = tray.getBoundingClientRect();
+    const contentWidth = tray.clientWidth;
+    const contentHeight = tray.clientHeight;
 
     // 1. Движение отдельных деталей в основной панели (partsTray)
     movers.forEach((m) => {
@@ -1770,8 +1772,8 @@ function moveParts() {
         m.x += m.vx;
         m.y += m.vy;
 
-        const maxX = rect.width - m.part.offsetWidth;
-        const maxY = rect.height - m.part.offsetHeight;
+        const maxX = contentWidth - m.part.offsetWidth;
+        const maxY = contentHeight - m.part.offsetHeight;
 
         if (m.x <= 0 || m.x >= maxX) m.vx *= -1;
         if (m.y <= 0 || m.y >= maxY) m.vy *= -1;
@@ -1793,8 +1795,8 @@ function moveParts() {
         group.x += group.vx;
         group.y += group.vy;
 
-        const maxX = rect.width - containerWidth;
-        const maxY = rect.height - containerHeight;
+        const maxX = contentWidth - containerWidth;
+        const maxY = contentHeight - containerHeight;
 
         if (group.x <= 0 || group.x >= maxX) group.vx *= -1;
         if (group.y <= 0 || group.y >= maxY) group.vy *= -1;
@@ -1826,8 +1828,8 @@ function moveParts() {
         m.x += m.vx;
         m.y += m.vy;
 
-        const maxX = rect.width - width;
-        const maxY = rect.height - height;
+        const maxX = contentWidth - width;
+        const maxY = contentHeight - height;
 
         if (m.x <= 0 || m.x >= maxX) m.vx *= -1;
         if (m.y <= 0 || m.y >= maxY) m.vy *= -1;

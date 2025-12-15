@@ -403,9 +403,21 @@ function enableToolDrag(tool) {
     tool.style.pointerEvents = 'auto';
     tool.style.cursor = 'grab';
 
-    tool.addEventListener('pointerdown', (e) => {
+    // Helper function to get event coordinates for tools
+    function getToolEventCoords(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+        }
+        return { clientX: e.clientX, clientY: e.clientY };
+    }
+
+    function startToolDrag(e) {
         e.preventDefault();
         e.stopPropagation();
+
+        const coords = getToolEventCoords(e);
 
         const clone = tool.cloneNode(true);
         clone.style.position = 'fixed';
@@ -413,14 +425,15 @@ function enableToolDrag(tool) {
         clone.style.pointerEvents = 'none';
         document.body.appendChild(clone);
 
-        const offsetX = e.clientX - tool.getBoundingClientRect().left;
-        const offsetY = e.clientY - tool.getBoundingClientRect().top;
+        const offsetX = coords.clientX - tool.getBoundingClientRect().left;
+        const offsetY = coords.clientY - tool.getBoundingClientRect().top;
 
         let isRemoved = false;
 
         const move = (e) => {
-            clone.style.left = `${e.clientX - offsetX}px`;
-            clone.style.top = `${e.clientY - offsetY}px`;
+            const moveCoords = getToolEventCoords(e);
+            clone.style.left = `${moveCoords.clientX - offsetX}px`;
+            clone.style.top = `${moveCoords.clientY - offsetY}px`;
         };
 
         const up = (e) => {
@@ -429,7 +442,8 @@ function enableToolDrag(tool) {
                 isRemoved = true;
             }
 
-            const target = findPartUnderCursor(e.clientX, e.clientY);
+            const upCoords = getToolEventCoords(e);
+            const target = findPartUnderCursor(upCoords.clientX, upCoords.clientY);
 
             if (target) {
                 if (tool.dataset.tool === 'sponge') {
@@ -457,11 +471,18 @@ function enableToolDrag(tool) {
 
             document.removeEventListener('pointermove', move);
             document.removeEventListener('pointerup', up);
+            document.removeEventListener('touchmove', move);
+            document.removeEventListener('touchend', up);
         };
 
         document.addEventListener('pointermove', move);
-        document.addEventListener('pointerup', up, { once: true }); // Обработчик выполнится только один раз
-    });
+        document.addEventListener('pointerup', up, { once: true });
+        document.addEventListener('touchmove', move, { passive: false });
+        document.addEventListener('touchend', up, { once: true });
+    }
+
+    tool.addEventListener('pointerdown', startToolDrag);
+    tool.addEventListener('touchstart', startToolDrag, { passive: false });
 }
 
 // Функция для разбивания "слипшейся" пары
@@ -570,7 +591,19 @@ function clearAll() {
 }
 function enableDrag(part) {
     console.log("enableDrag");
-    part.addEventListener('pointerdown', (e) => {
+
+    // Helper function to get event coordinates (works for both mouse and touch)
+    function getEventCoords(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+        }
+        return { clientX: e.clientX, clientY: e.clientY };
+    }
+
+    // Helper function to handle drag start
+    function startDrag(e) {
         if (lives <= 0) {
             return;
         }
@@ -580,7 +613,13 @@ function enableDrag(part) {
         }
 
         e.preventDefault();
-        part.setPointerCapture(e.pointerId);
+        const coords = getEventCoords(e);
+
+        // For pointer events, capture pointer
+        if (e.pointerId !== undefined) {
+            part.setPointerCapture(e.pointerId);
+        }
+
         const rect = part.getBoundingClientRect();
         const originParent = part.parentElement;
         let allowedContainer;
@@ -613,8 +652,8 @@ function enableDrag(part) {
 
         dragging = {
             part,
-            offsetX: e.clientX - rect.left,
-            offsetY: e.clientY - rect.top,
+            offsetX: coords.clientX - rect.left,
+            offsetY: coords.clientY - rect.top,
             originParent: originParent,
             allowedContainer: allowedContainer,
             setId: part.dataset.setId,
@@ -626,13 +665,15 @@ function enableDrag(part) {
         removeMover(part);
         detachFromGroup(part);
         stopAnimation();
-        moveAt(e.clientX, e.clientY);
+        moveAt(coords.clientX, coords.clientY);
         highlightTargets(part);
-    });
+    }
 
-    part.addEventListener('pointermove', (e) => {
+    // Helper function to handle drag move
+    function moveDrag(e) {
         if (!dragging || dragging.part !== part) return;
-        moveAt(e.clientX, e.clientY);
+        const coords = getEventCoords(e);
+        moveAt(coords.clientX, coords.clientY);
         const now = Date.now();
         if (now - lastHighlight > 200) {
             highlightTargets(part);
@@ -642,7 +683,7 @@ function enableDrag(part) {
         // ★★★ ИСПРАВЛЕНО: Проверяем существование wrappingDoll ★★★
         if (wrappingDoll) {
             // Проверяем, наведены ли на готовую матрешку в wrapping-doll-container
-            const hoveredElement = findPartUnderCursor(e.clientX, e.clientY);
+            const hoveredElement = findPartUnderCursor(coords.clientX, coords.clientY);
             if (hoveredElement &&
                 hoveredElement.classList.contains('completed-doll') &&
                 (hoveredElement.parentElement === wrappingDoll ||
@@ -655,15 +696,32 @@ function enableDrag(part) {
                 }
             }
         }
-    });
+    }
 
-    part.addEventListener('pointerup', (e) => {
+    // Helper function to handle drag end
+    function endDrag(e) {
         if (!dragging || dragging.part !== part) return;
-        part.releasePointerCapture(e.pointerId);
-        finishDrag(e);
+        const coords = getEventCoords(e);
+
+        // For pointer events, release capture
+        if (e.pointerId !== undefined) {
+            part.releasePointerCapture(e.pointerId);
+        }
+
+        finishDrag({ clientX: coords.clientX, clientY: coords.clientY });
         startAnimation();
         dragging = null;
-    });
+    }
+
+    // Add event listeners for both pointer and touch events
+    part.addEventListener('pointerdown', startDrag);
+    part.addEventListener('pointermove', moveDrag);
+    part.addEventListener('pointerup', endDrag);
+
+    // Touch event listeners for mobile support
+    part.addEventListener('touchstart', startDrag, { passive: false });
+    part.addEventListener('touchmove', moveDrag, { passive: false });
+    part.addEventListener('touchend', endDrag, { passive: false });
 }
 function moveAt(x, y) {
     if (!dragging) return;

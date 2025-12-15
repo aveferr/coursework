@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Сборка матрешки — Уровень 2</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="matrs.css" />
+</head>
+
+<body>
+  <div class="app">
+    <div class="main-content">
+      <header class="panel">
+        <nav class="levels">
+          <a href="start.html">Главная</a>
+          <a id="level1Link" href="level1.html">Уровень 1</a>
+          <a id="level2Link" href="level2.html">Уровень 2</a>
+          <a id="level3Link" href="level3.html">Уровень 3</a>
+        </nav>
+      </header>
+
+      <section class="panel hud">
+        <div class="hud-item">
+          <div class="label">Уровень</div>
+          <div id="levelName" class="value">—</div>
+        </div>
+        <div class="hud-item">
+          <div class="label">Жизни</div>
+          <div id="lives" class="value">❤❤❤</div>
+        </div>
+        <div class="hud-item">
+          <div class="label">Прогресс</div>
+          <div id="progress" class="value">0 / 0</div>
+        </div>
+        <div class="hud-item">
+          <div class="label">Размеры</div>
+          <div id="sizeLabel" class="value">Разные</div>
+        </div>
+
+        <div class="hud-item">
+          <div class="label">Время</div>
+          <div id="timer" class="value">—</div>
+          <progress id="timerProgress" class="timer-progress" value="0" max="100"></progress>
+        </div>
+      </section>
+      <section class="panel workspace">
+        <div class="workspace-split">
+          <!-- Левая часть: оборачивание -->
+          <div class="column wrapping-area">
+            <h2>Оборачивание матрешки</h2>
+            <p class="muted">Используйте детали сверху, чтобы обернуть готовую матрешку.</p>
+            <div class="wrapping-parts-container">
+              <div id="wrappingParts" class="wrapping-parts"></div>
+            </div>
+            <div class="wrapping-doll-container">
+              <div id="wrappingDoll" class="wrapping-doll-area"></div>
+            </div>
+          </div>
+          <div class="column palette">
+            <h2>Детали и сборка</h2>
+            <p class="muted">Детали двигаются в боксе. Поймайте нужные и скрепляйте их друг с другом — голова к
+              туловищу,
+              туловище к основанию.</p>
+            <div class="row">
+              <button id="generateParts">Сгенерировать набор</button>
+              <button id="clearParts" class="ghost">Очистить детали</button>
+            </div>
+            <div id="partsTray" class="parts-tray"></div>
+          </div>
+      </section>
+    </div>
+    <section class="panel shelf-panel">
+      <div class="column shelf-column">
+        <h2>Готовые матрешки</h2>
+        <div id="shelf" class="shelf"></div>
+      </div>
+    </section>
+  </div>
+  <!-- Модальное окно победы -->
+  <div id="winModal" class="modal-overlay">
+    <div class="modal-content win-modal">
+      <div class="modal-icon">🎉</div>
+      <h2>Поздравляем!</h2>
+      <p class="modal-subtitle">Вы успешно собрали все матрешки!</p>
+
+      <div class="score-board">
+        <div class="score-item">
+          <span class="score-label">Собрано матрешек:</span>
+          <span class="score-value" id="scoreMatryoshkas">0</span>
+        </div>
+        <div class="score-item">
+          <span class="score-label">Потрачено времени:</span>
+          <span class="score-value" id="scoreTime">0:00</span>
+        </div>
+        <div class="score-item">
+          <span class="score-label">Осталось жизней:</span>
+          <span class="score-value" id="scoreLives">3</span>
+        </div>
+        <div class="score-item total">
+          <span class="score-label">Общий счет:</span>
+          <span class="score-value" id="scoreTotal">0</span>
+        </div>
+        <div class="score-item summary" id="summaryItem" style="display: none;">
+          <span class="score-label" id="summaryLabel">Итоговый счет (уровни 1-2):</span>
+          <span class="score-value" id="scoreSummary">0</span>
+        </div>
+      </div>
+
+      <div class="modal-buttons">
+        <button id="nextLevelBtn" class="btn-primary">Следующий уровень →</button>
+        <button id="restartLevelBtn" class="btn-secondary">Играть еще раз</button>
+        <button id="mainMenuBtn" class="btn-ghost">Главное меню</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно поражения -->
+  <div id="loseModal" class="modal-overlay">
+    <div class="modal-content lose-modal">
+      <div class="modal-icon">😢</div>
+      <h2>Игра окончена</h2>
+      <p class="modal-subtitle">Попробуйте еще раз!</p>
+
+      <div class="score-board">
+        <div class="score-item">
+          <span class="score-label">Собрано матрешек:</span>
+          <span class="score-value" id="loseMatryoshkas">0</span>
+        </div>
+        <div class="score-item">
+          <span class="score-label">Осталось времени:</span>
+          <span class="score-value" id="loseTime">0:00</span>
+        </div>
+        <div class="score-item">
+          <span class="score-label">Причина поражения:</span>
+          <span class="score-value" id="loseReason">—</span>
+        </div>
+      </div>
+
+      <div class="modal-buttons">
+        <button id="restartAfterLoseBtn" class="btn-primary">Попробовать еще раз</button>
+        <button id="mainMenuLoseBtn" class="btn-secondary">Главное меню</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Контейнер для конфетти (фейерверков) -->
+  <div id="confetti-container"></div>
+
+  <!-- Записка для уровня 2 -->
+  <div id="levelNote" style="display: none;">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1000; max-width: 400px;">
+      <h3>Уровень 2</h3>
+      <p>Ваша задача снова собрать матрешки, как в уровне 1. После того, как соберете, матрешка переместится в поле "Оборачивание". Там оборачивайте матрешку до тех пор, пока она не станет большого размера.</p>
+      <button onclick="document.getElementById('levelNote').style.display='none'">Закрыть</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>

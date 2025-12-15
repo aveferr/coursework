@@ -1,0 +1,176 @@
+/* === ДЕТАЛИ  === */
+.part {
+  position: absolute;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  color: #1a1a1a;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #ffffff88;
+  border: 2px solid #ffffffaa;
+  border-radius: 12px;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(var(--scale, 1));
+  transform-origin: center bottom;
+  will-change: transform, left, top;
+  overflow: hidden;
+}
+
+.dirty {
+  filter: brightness(0.7) sepia(0.5); /* Пример "грязи" */
+}
+.part img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+#toolsPanel {
+    background: rgba(255, 255, 255, 0.7);
+    padding: 10px 20px;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.tool {
+    transition: transform 0.2s;
+}
+
+.tool:hover {
+    transform: scale(1.2);
+}
+
+.dirty {
+    filter: brightness(0.6) sepia(0.4) opacity(0.85);
+    /* Добавь оверлей пыли, если хочешь */
+}
+
+.wrong-assembly {
+    border: 3px dashed red;
+    border-radius: 20px;
+    padding: 10px;
+}
+
+.part span {
+  background: #ffffffcc;
+  color: #0f1117;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.part:hover {
+  box-shadow: 0 10px 30px #00000055;
+  transform: translateY(-2px);
+}
+
+.part.can-attach {
+  box-shadow: 0 0 0 4px #ffd3dc, 0 10px 30px #ff7b5f88 !important;
+  transform: scale(1.05) translateY(-2px);
+  border-color: #ff7b5f;
+}
+
+.assembled-group {
+  z-index: 10;
+  pointer-events: none;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.assembled-group .part {
+  pointer-events: auto;
+  cursor: grab;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* === ГОТОВЫЕ МАТРЕШКИ === */
+.doll {
+  position: relative;
+  width: 130px;
+  height: 190px;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 10px 18px #d1dcff88);
+  transform: scale(var(--scale, 1));
+  transform-origin: center bottom;
+  flex-shrink: 0;
+}
+
+.d-label {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffffdd;
+  color: #0f1117;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* === СОСТОЯНИЯ ПЕРЕТАСКИВАНИЯ === */
+.dragging {
+  opacity: 0.9;
+  box-shadow: 0 16px 40px #00000088 !important;
+}
+
+/* Улучшение визуального перекрытия */
+.wrapping-group, .assembled-group {
+    position: absolute;
+}
+
+/* Плавное перекрытие */
+.wrapping-group {
+    position: absolute;
+    pointer-events: none;
+}
+
+.wrapping-group > * {
+    pointer-events: auto;
+}
+
+/* Внутренняя матрешка должна быть видна частично */
+.completed-doll {
+    overflow: visible;
+    transition: clip-path 0.3s ease;
+}
+
+/* Тени для глубины */
+.wrapping-group .part {
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+}
+
+.wrapping-group .completed-doll {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Z-index для правильного перекрытия */
+.wrapping-group .part-head {
+    z-index: 10 !important;
+}
+
+.wrapping-group .part-body {
+    z-index: 8 !important;
+}
+
+.wrapping-group .completed-doll {
+    z-index: 5 !important;
+}
+
+.wrapping-group .part-base {
+    z-index: 6 !important;
+}

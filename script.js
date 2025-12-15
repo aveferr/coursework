@@ -564,7 +564,6 @@ function breakGluedPair(gluedGroup) {
     newPart2.style.left = `${posX2}px`;
     newPart2.style.top = `${posY2}px`;
 
-    // ★★★ ФИКС: Обновляем movers, чтобы анимация не сломала позицию
     const updateMover = (part, x, y) => {
         const mover = movers.find(m => m.part === part);
         if (mover) {
@@ -624,17 +623,14 @@ function enableDrag(part) {
         const originParent = part.parentElement;
         let allowedContainer;
 
-        // ★★★ ИСПРАВЛЕНО: Определяем разрешенный контейнер на основе происхождения ★★★
         if (originParent === tray || originParent.closest('#partsTray')) {
             allowedContainer = tray; // Только основная панель
         } else if (originParent === wrappingTray || originParent.closest('#wrappingParts')) {
-            // Части для оборачивания могут перемещаться только в пределах wrapping-area
-            // Проверяем, существует ли wrapping-area
+
             const wrappingArea = document.querySelector('.wrapping-area');
             if (wrappingArea) {
                 allowedContainer = wrappingArea;
             } else if (wrappingTray) {
-                // Fallback: если нет wrapping-area, но есть wrappingTray
                 allowedContainer = wrappingTray;
             } else {
                 // Если вообще ничего нет, используем tray
@@ -644,7 +640,6 @@ function enableDrag(part) {
             allowedContainer = originParent;
         }
 
-        // ★★★ ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: убедимся, что allowedContainer существует ★★★
         if (!allowedContainer) {
             console.error('allowedContainer is null!');
             allowedContainer = tray; // Fallback к основной панели
@@ -680,7 +675,6 @@ function enableDrag(part) {
             lastHighlight = now;
         }
 
-        // ★★★ ИСПРАВЛЕНО: Проверяем существование wrappingDoll ★★★
         if (wrappingDoll) {
             // Проверяем, наведены ли на готовую матрешку в wrapping-doll-container
             const hoveredElement = findPartUnderCursor(coords.clientX, coords.clientY);
@@ -727,13 +721,11 @@ function moveAt(x, y) {
     if (!dragging) return;
     const { part, offsetX, offsetY, allowedContainer } = dragging;
 
-    // ★★★ ПРОВЕРКА: убедимся, что allowedContainer существует ★★★
     if (!allowedContainer) {
         console.error('moveAt: allowedContainer is null!');
         return;
     }
 
-    // ★★★ ПРОВЕРКА: убедимся, что allowedContainer - это DOM элемент ★★★
     if (!allowedContainer.getBoundingClientRect) {
         console.error('moveAt: allowedContainer is not a DOM element!', allowedContainer);
         return;
@@ -743,9 +735,6 @@ function moveAt(x, y) {
     const partWidth = part.offsetWidth;
     const partHeight = part.offsetHeight;
 
-    // ★★★ ИСПРАВЛЕНО: Правильный расчет границ ★★★
-    // Если контейнер - это wrapping-area, используем его внутренние размеры
-    // Если контейнер - это wrappingTray, тоже используем его размеры
 
     const minX = containerRect.left;
     const maxX = containerRect.right - partWidth;
@@ -774,7 +763,6 @@ function highlightTargets(draggedPart) {
     candidates.forEach((target) => {
         if (target === draggedPart) return;
         if (target.classList.contains('dragging')) return;
-        // Check if target is within allowed container
         if (!allowedContainer.contains(target)) return;
         const targetType = target.dataset.type;
         const targetSetId = target.dataset.setId;
@@ -875,7 +863,6 @@ function finishDrag(e) {
     const isWithinAllowedArea = dropX >= containerRect.left && dropX <= containerRect.right &&
         dropY >= containerRect.top && dropY <= containerRect.bottom;
 
-    // ★★★ ИСПРАВЛЕНО: Обертка в wrappingDoll возможна только если CONFIG.allowWrapping === true ★★★
     if (CONFIG.allowWrapping && hoveredElement && hoveredElement.classList.contains('completed-doll') &&
         hoveredElement.parentElement === wrappingDoll) {
         const draggedScale = parseFloat(part.style.getPropertyValue('--scale') || '1');
@@ -898,7 +885,6 @@ function finishDrag(e) {
     }
 
     if (hoveredElement && hoveredElement !== part) {
-        // ★★★ ИСПРАВЛЕНО: Убираем логику оборачивания для tray ★★★
         // В tray только сборка, оборачивание только в wrappingDoll
         if (hoveredElement.classList.contains('completed-doll') &&
             (hoveredElement.parentElement === wrappingDoll ||
@@ -936,7 +922,6 @@ function finishDrag(e) {
             }
         }
 
-        // ★★★ В tray разрешена ТОЛЬКО сборка из деталей ★★★
         let hoveredType = hoveredElement.dataset.type;
         let hoveredSetId = hoveredElement.dataset.setId;
         const allowedTargets = ATTACH_RULES[type] || [];
@@ -1023,7 +1008,6 @@ function wrapAroundDoll(newPart, completedDoll) {
         const wrappingId = `wrap_${setIdCounter++}`;
         completedDoll.dataset.wrappingId = wrappingId;
         
-        // ★★★ ПЕРЕДАЕМ ИНФОРМАЦИЮ О ЧАСТЯХ НОВОЙ МАТРЕШКЕ ★★★
         const existingParts = completedDoll.dataset.containsParts || completedDoll.dataset.imageSetId;
         
         wrapGroup = {
@@ -1041,7 +1025,6 @@ function wrapAroundDoll(newPart, completedDoll) {
         // Удаляем из движущихся объектов
         completedDollMovers = completedDollMovers.filter(m => m.element !== completedDoll);
 
-        // СОЗДАЕМ КОНТЕЙНЕР
         const container = document.createElement('div');
         container.className = 'wrapping-group';
         container.style.position = 'absolute';
@@ -1239,7 +1222,6 @@ function checkWrappingComplete(wrapGroup) {
         const outerScale = parseFloat(wrapGroup.head.style.getPropertyValue('--scale') || '1');
         const imageSetId = (wrapGroup.outerSetId % 3) + 1;
         
-        // ★★★ СОБИРАЕМ ВСЕ ЧАСТИ В ОДНУ СТРОКУ ★★★
         let allParts = [];
         
         // Добавляем внутренние части (если они есть)
@@ -1507,7 +1489,6 @@ function checkGroupComplete(group, setId) {
         completedDoll.dataset.setId = setId;
         completedDoll.dataset.imageSetId = imageSetId;
         
-        // ★★★ ВАЖНОЕ ИЗМЕНЕНИЕ: Сохраняем информацию о частях ★★★
         // Создаем строку с информацией о всех частях в этой матрешке
         let partsInfo = [imageSetId]; // Начинаем с текущей матрешки
         
@@ -1540,7 +1521,6 @@ function checkGroupComplete(group, setId) {
         if (group.container) group.container.remove();
         assembledGroups.delete(setId);
 
-        // ★★★ ИЗМЕНЕНИЕ: Проверяем, нужно ли оборачивать ★★★
         if (!CONFIG.allowWrapping || scale >= 1.25) {
             collectFinalDoll(completedDoll);
             return;
@@ -1840,7 +1820,6 @@ function initializeLevel() {
     CONFIG.next = originalConfig.next;
     levelNameEl.textContent = CONFIG.name;
     
-    // ★★★ СБРАСЫВАЕМ ИСТОРИЮ ★★★
     built = 0;
     collectedMatryoshkas = 0;
     assembledDollsHistory = []; // Очищаем историю
@@ -1938,7 +1917,6 @@ function moveParts() {
 
     // 3. Движение готовых матрешек в ОСНОВНОЙ панели (тех, что в очереди ожидания)
     completedDollMovers.forEach((m, index) => {
-        // ★★★ Пропускаем матрешки в wrappingDoll ★★★
         if (m.element.parentElement === wrappingDoll) {
             completedDollMovers.splice(index, 1);
             return;
@@ -1961,7 +1939,7 @@ function moveParts() {
         m.x += m.vx;
         m.y += m.vy;
 
-        // Проверяем границы ОСНОВНОЙ панели (partsTray)
+        // Проверяем границы основной панели (partsTray)
         const maxX = rect.width - width;
         const maxY = rect.height - height;
 

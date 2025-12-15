@@ -1,4 +1,3 @@
-/* === ДЕТАЛИ  === */
 .part {
   position: absolute;
   width: 8vw;
@@ -22,7 +21,7 @@
 }
 
 .dirty {
-  filter: brightness(0.7) sepia(0.5); /* Пример "грязи" */
+  filter: brightness(0.7) sepia(0.5);
 }
 .part img {
   width: 100%;
@@ -48,7 +47,6 @@
 
 .dirty {
     filter: brightness(0.6) sepia(0.4) opacity(0.85);
-    /* Добавь оверлей пыли, если хочешь */
 }
 
 .wrong-assembly {
@@ -96,7 +94,6 @@
   box-sizing: border-box;
 }
 
-/* === ГОТОВЫЕ МАТРЕШКИ === */
 .doll {
   position: relative;
   width: 10.8vw;
@@ -122,18 +119,16 @@
   font-size: 1vw;
 }
 
-/* === СОСТОЯНИЯ ПЕРЕТАСКИВАНИЯ === */
 .dragging {
   opacity: 0.9;
   box-shadow: 0 16px 40px #00000088 !important;
 }
 
-/* Улучшение визуального перекрытия */
+
 .wrapping-group, .assembled-group {
     position: absolute;
 }
 
-/* Плавное перекрытие */
 .wrapping-group {
     position: absolute;
     pointer-events: none;
@@ -143,13 +138,11 @@
     pointer-events: auto;
 }
 
-/* Внутренняя матрешка должна быть видна частично */
 .completed-doll {
     overflow: visible;
     transition: clip-path 0.3s ease;
 }
 
-/* Тени для глубины */
 .wrapping-group .part {
     filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
 }
@@ -158,7 +151,6 @@
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-/* Z-index для правильного перекрытия */
 .wrapping-group .part-head {
     z-index: 10 !important;
 }

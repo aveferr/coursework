@@ -231,9 +231,6 @@ button.ghost {
   min-height: 320px;
 }
 
-/*=========================================*/
-
-/* Модальные окна */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -284,7 +281,6 @@ button.ghost {
   }
 }
 
-/* Цветовые темы для модальных окон */
 .win-modal {
   background: linear-gradient(135deg, #ffffff, #fef9f0);
   border: 3px solid #ea1d24;
@@ -375,7 +371,6 @@ button.ghost {
   margin-bottom: 30px;
 }
 
-/* Таблица результатов */
 .score-board {
   background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
@@ -422,7 +417,6 @@ button.ghost {
   color: #ff9aa2;
 }
 
-/* Кнопки в модальных окнах */
 .modal-buttons {
   display: flex;
   flex-direction: column;
@@ -475,7 +469,6 @@ button.ghost {
   border-color: #1f2430;
 }
 
-/* Конфетти (фейерверки) */
 #confetti-container {
   position: fixed;
   top: 0;
@@ -544,7 +537,6 @@ button.ghost {
   margin-bottom: 10px;
 }
 
-/* Mobile responsiveness */
 @media (max-width: 768px) {
   .app {
     flex-direction: column;

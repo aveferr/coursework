@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 let assembledDollsHistory = [];
-let waitingDolls = []; 
+let waitingDolls = [];
 const playerName = localStorage.getItem('playerName') || 'Игрок';
 let gameStartTime = null;
 let collectedMatryoshkas = 0;
@@ -223,14 +223,13 @@ function generateSet() {
     resetLives();
     clearAll();
 
-    // Создаём панель инструментов (только для Уровня 3)
     if (CONFIG.name === 'Уровень 3') {
         document.querySelectorAll('#toolsPanel .tool').forEach(enableToolDrag);
     }
 
 
     const sizes = [];
-    const createdParts = []; // Сохраняем созданные детали
+    const createdParts = [];
 
     for (let i = 0; i < CONFIG.setsPerGeneration; i++) {
         const size = randomFrom(SIZES);
@@ -238,7 +237,6 @@ function generateSet() {
         sizes.push(size.label);
 
         ['head', 'body', 'base'].forEach((type) => {
-            // Для Уровня 3: 40% шанс грязи, 30% шанс "слипшихся" деталей
             const dirty = CONFIG.name === 'Уровень 3' && Math.random() < 0.4;
             const isGlued = CONFIG.name === 'Уровень 3' && Math.random() < 0.3;
 
@@ -247,21 +245,17 @@ function generateSet() {
                 setId,
                 size,
                 dirty,
-                isGlued: isGlued  // Не клеим голову к чему-то
+                isGlued: isGlued
             });
 
             createdParts.push(part);
         });
     }
 
-    // Для Уровня 3: создаем "слипшиеся" пары из уже созданных деталей
     if (CONFIG.name === 'Уровень 3') {
-        // Создаем пары для склеивания (не более 2-3 пар за уровень)
         const numPairs = Math.min(2, Math.floor(createdParts.length / 2));
 
         for (let i = 0; i < numPairs; i++) {
-            // Берем детали с разными типами (head, body, base)
-            // Пропускаем если это две головы или другие недопустимые комбинации
             const idx1 = i * 2;
             const idx2 = i * 2 + 1;
 
@@ -269,7 +263,6 @@ function generateSet() {
                 const part1 = createdParts[idx1];
                 const part2 = createdParts[idx2];
 
-                // Проверяем, что это не две головы
                 if (part1.dataset.type !== 'head' || part2.dataset.type !== 'head') {
                     createGluedPairs(part1, part2);
                 }
@@ -284,20 +277,16 @@ function generateSet() {
 function createGluedPairs(part1, part2) {
     console.log("createGluedPairs");
 
-    // Проверяем, можно ли их склеить
     const type1 = part1.dataset.type;
     const type2 = part2.dataset.type;
     const setId1 = part1.dataset.setId;
     const setId2 = part2.dataset.setId;
 
-    // Удаляем оригинальные детали из DOM
     part1.remove();
     part2.remove();
 
-    // Удаляем из движущихся объектов
     movers = movers.filter(m => m.part !== part1 && m.part !== part2);
 
-    // Создаем группу для склеенных деталей
     const gluedGroup = document.createElement('div');
     gluedGroup.className = 'glued-pair';
     gluedGroup.dataset.isGluedPair = 'true';
@@ -306,13 +295,10 @@ function createGluedPairs(part1, part2) {
     gluedGroup.dataset.setId1 = setId1;
     gluedGroup.dataset.setId2 = setId2;
 
-    // Добавляем оригинальные детали (не клоны!)
     gluedGroup.appendChild(part1);
     gluedGroup.appendChild(part2);
 
-    // Стили для визуального отображения склеенности (теперь в CSS)
 
-    // Позиционируем детали внутри группы
     part1.style.position = 'relative';
     part1.style.left = '0';
     part1.style.top = '0';
@@ -323,20 +309,16 @@ function createGluedPairs(part1, part2) {
     part2.style.top = '0';
     part2.style.margin = '0';
 
-    // Отключаем перетаскивание отдельных деталей
     part1.style.pointerEvents = 'none';
     part2.style.pointerEvents = 'none';
 
-    // Добавляем надпись "Склеено"
     const glueLabel = document.createElement('div');
     glueLabel.className = 'glue-label';
     glueLabel.textContent = 'Склеено!';
     gluedGroup.appendChild(glueLabel);
 
-    // Добавляем группу в tray
     tray.appendChild(gluedGroup);
 
-    // Позиционируем группу
     const trayRect = tray.getBoundingClientRect();
     const groupWidth = gluedGroup.offsetWidth;
     const groupHeight = gluedGroup.offsetHeight;
@@ -344,7 +326,6 @@ function createGluedPairs(part1, part2) {
     gluedGroup.style.left = Math.random() * (trayRect.width - groupWidth - 20) + 10 + 'px';
     gluedGroup.style.top = Math.random() * (trayRect.height - groupHeight - 20) + 10 + 'px';
 
-    // Добавляем группу в движущиеся объекты
     const speed = (CONFIG.speed || 1) * 0.8;
     const mover = {
         part: gluedGroup,
@@ -391,7 +372,7 @@ function makePart({ type, setId, size, dirty = false, isGlued = false }) {
     tray.appendChild(part);
     placeInTray(part);
 
-    return part; // Возвращаем созданную деталь
+    return part;
 }
 
 function canAttach(type1, type2) {
@@ -403,7 +384,6 @@ function enableToolDrag(tool) {
     tool.style.pointerEvents = 'auto';
     tool.style.cursor = 'grab';
 
-    // Helper function to get event coordinates for tools
     function getToolEventCoords(e) {
         if (e.touches && e.touches.length > 0) {
             return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
@@ -447,7 +427,7 @@ function enableToolDrag(tool) {
 
             if (target) {
                 if (tool.dataset.tool === 'sponge') {
-                    // ГУБКА: очистка только грязных деталей
+
                     if (target.classList.contains('dirty')) {
                         target.classList.remove('dirty');
                         console.log('Очищено губкой!');
@@ -456,7 +436,6 @@ function enableToolDrag(tool) {
                     }
 
                 } else if (tool.dataset.tool === 'hammer') {
-                    // МОЛОТОК: разбивание склеенных пар (группа или внутри неё)
                     let targetToBreak = target.closest('.glued-pair');
                     if (targetToBreak && targetToBreak.dataset.isGluedPair === 'true') {
                         breakGluedPair(targetToBreak);
@@ -485,11 +464,9 @@ function enableToolDrag(tool) {
     tool.addEventListener('touchstart', startToolDrag, { passive: false });
 }
 
-// Функция для разбивания "слипшейся" пары
 function breakGluedPair(gluedGroup) {
     console.log("Разбиваем склеенную пару", gluedGroup);
 
-    // Получаем оригинальные детали из группы
     const parts = gluedGroup.querySelectorAll('.part');
     if (parts.length !== 2) {
         console.error('Некорректная склеенная группа:', parts);
@@ -499,7 +476,6 @@ function breakGluedPair(gluedGroup) {
     const part1 = parts[0];
     const part2 = parts[1];
 
-    // Получаем данные из оригинальных деталей
     const type1 = part1.dataset.type;
     const type2 = part2.dataset.type;
     const setId1 = part1.dataset.setId;
@@ -509,18 +485,15 @@ function breakGluedPair(gluedGroup) {
 
     console.log('Детали в паре:', type1, 'и', type2, 'Set IDs:', setId1, setId2);
 
-    // Получаем оригинальный масштаб
     const originalScale1 = parseFloat(part1.style.getPropertyValue('--scale') || '1');
     const originalSize1 = SIZES.find(s => Math.abs(s.scale - originalScale1) < 0.01) || SIZES[1];
 
     const originalScale2 = parseFloat(part2.style.getPropertyValue('--scale') || '1');
     const originalSize2 = SIZES.find(s => Math.abs(s.scale - originalScale2) < 0.01) || SIZES[1];
 
-    // Удаляем склеенную группу из DOM и из массива движущихся объектов
     gluedGroup.remove();
     movers = movers.filter(m => m.part !== gluedGroup);
 
-    // Создаем новые нормальные детали с оригинальными размерами и dirty
     const newPart1 = makePart({
         type: type1,
         setId: setId1,
@@ -537,11 +510,10 @@ function breakGluedPair(gluedGroup) {
     });
     console.log('Созданы новые детали:', type1, 'и', type2);
 
-    // Позиционируем новые детали рядом друг с другом (без выхода за границы)
     const trayRect = tray.getBoundingClientRect();
     const spacing = 20;
     const p1Width = newPart1.offsetWidth;
-    const p2Width = newPart2.offsetHeight;  // ОШИБКА В ОРИГИНАЛЕ? Нет, offsetWidth для p2
+    const p2Width = newPart2.offsetHeight;
     const totalWidth = p1Width + spacing + p2Width;
     const margin = 10;
     const maxStartX = trayRect.width - totalWidth - 2 * margin;
@@ -550,7 +522,6 @@ function breakGluedPair(gluedGroup) {
         posX1 = Math.random() * maxStartX + margin;
         posX2 = posX1 + p1Width + spacing;
     } else {
-        // Если не влезает — ставим слева и справа
         posX1 = margin;
         posX2 = trayRect.width - p2Width - margin;
     }
@@ -558,7 +529,6 @@ function breakGluedPair(gluedGroup) {
     posY1 = Math.random() * (trayRect.height - maxHeight - 2 * margin) + margin;
     const posY2 = posY1;
 
-    // Устанавливаем позиции
     newPart1.style.left = `${posX1}px`;
     newPart1.style.top = `${posY1}px`;
     newPart2.style.left = `${posX2}px`;
@@ -591,7 +561,6 @@ function clearAll() {
 function enableDrag(part) {
     console.log("enableDrag");
 
-    // Helper function to get event coordinates (works for both mouse and touch)
     function getEventCoords(e) {
         if (e.touches && e.touches.length > 0) {
             return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
@@ -601,20 +570,17 @@ function enableDrag(part) {
         return { clientX: e.clientX, clientY: e.clientY };
     }
 
-    // Helper function to handle drag start
     function startDrag(e) {
         if (lives <= 0) {
             return;
         }
         if (part.classList.contains('dirty')) {
-            // Если грязный, не перетаскивать, пока не очищен
             return;
         }
 
         e.preventDefault();
         const coords = getEventCoords(e);
 
-        // For pointer events, capture pointer
         if (e.pointerId !== undefined) {
             part.setPointerCapture(e.pointerId);
         }
@@ -624,7 +590,7 @@ function enableDrag(part) {
         let allowedContainer;
 
         if (originParent === tray || originParent.closest('#partsTray')) {
-            allowedContainer = tray; // Только основная панель
+            allowedContainer = tray;
         } else if (originParent === wrappingTray || originParent.closest('#wrappingParts')) {
 
             const wrappingArea = document.querySelector('.wrapping-area');
@@ -633,7 +599,6 @@ function enableDrag(part) {
             } else if (wrappingTray) {
                 allowedContainer = wrappingTray;
             } else {
-                // Если вообще ничего нет, используем tray
                 allowedContainer = tray;
             }
         } else {
@@ -642,7 +607,7 @@ function enableDrag(part) {
 
         if (!allowedContainer) {
             console.error('allowedContainer is null!');
-            allowedContainer = tray; // Fallback к основной панели
+            allowedContainer = tray;
         }
 
         dragging = {
@@ -664,7 +629,6 @@ function enableDrag(part) {
         highlightTargets(part);
     }
 
-    // Helper function to handle drag move
     function moveDrag(e) {
         if (!dragging || dragging.part !== part) return;
         const coords = getEventCoords(e);
@@ -676,7 +640,6 @@ function enableDrag(part) {
         }
 
         if (wrappingDoll) {
-            // Проверяем, наведены ли на готовую матрешку в wrapping-doll-container
             const hoveredElement = findPartUnderCursor(coords.clientX, coords.clientY);
             if (hoveredElement &&
                 hoveredElement.classList.contains('completed-doll') &&
@@ -685,19 +648,16 @@ function enableDrag(part) {
                 const draggedScale = parseFloat(part.style.getPropertyValue('--scale') || '1');
                 const innerScale = parseFloat(hoveredElement.dataset.innerScale || '1');
                 if (draggedScale > innerScale) {
-                    // Если перетаскиваемая часть больше матрешки, показываем подсветку
                     hoveredElement.classList.add('can-attach');
                 }
             }
         }
     }
 
-    // Helper function to handle drag end
     function endDrag(e) {
         if (!dragging || dragging.part !== part) return;
         const coords = getEventCoords(e);
 
-        // For pointer events, release capture
         if (e.pointerId !== undefined) {
             part.releasePointerCapture(e.pointerId);
         }
@@ -707,12 +667,10 @@ function enableDrag(part) {
         dragging = null;
     }
 
-    // Add event listeners for both pointer and touch events
     part.addEventListener('pointerdown', startDrag);
     part.addEventListener('pointermove', moveDrag);
     part.addEventListener('pointerup', endDrag);
 
-    // Touch event listeners for mobile support
     part.addEventListener('touchstart', startDrag, { passive: false });
     part.addEventListener('touchmove', moveDrag, { passive: false });
     part.addEventListener('touchend', endDrag, { passive: false });
@@ -741,7 +699,6 @@ function moveAt(x, y) {
     const minY = containerRect.top;
     const maxY = containerRect.bottom - partHeight;
 
-    // Ограничиваем позицию курсора границами контейнера
     x = Math.max(minX, Math.min(x, maxX));
     y = Math.max(minY, Math.min(y, maxY));
 
@@ -786,11 +743,8 @@ function highlightTargets(draggedPart) {
 
 function placeInWrappingTray() {
     console.log("placeInWrappingTray");
-    // Функция может вообще не делать ничего, если CSS настроен правильно
-    // Или просто сбрасывает стили, которые могли быть изменены при перетаскивании
     const parts = wrappingTray.querySelectorAll('.part');
     parts.forEach(part => {
-        // Сбрасываем инлайн-стили, чтобы CSS взял управление
         part.style.position = '';
         part.style.left = '';
         part.style.top = '';
@@ -824,7 +778,6 @@ function finishDrag(e) {
         return;
     }
 
-    // Очищаем подсветку в wrappingTray (если он существует)
     if (wrappingTray) {
         Array.from(wrappingTray.querySelectorAll('.part, .completed-doll')).forEach((p) => {
             p.classList.remove('can-attach');
@@ -833,12 +786,10 @@ function finishDrag(e) {
 
     let hoveredElement = findPartUnderCursor(e.clientX, e.clientY);
 
-    // Проверяем, находимся ли мы в wrapping-area
     const isInWrappingArea = allowedContainer.classList.contains('wrapping-area') ||
         allowedContainer.id === 'wrappingParts' ||
         allowedContainer.closest('.wrapping-area');
 
-    // Если в wrapping-area и навели на деталь - запрещаем сборку
     if (isInWrappingArea && hoveredElement && hoveredElement.classList.contains('part')) {
         if (originParent === wrappingTray) {
             returnToWrappingTray(part);
@@ -851,12 +802,10 @@ function finishDrag(e) {
     part.style.position = 'absolute';
     part.style.zIndex = '';
 
-    // Очищаем подсветку в tray
     Array.from(tray.querySelectorAll('.part, .assembled-group')).forEach((p) => {
         p.classList.remove('can-attach');
     });
 
-    // Проверяем границы контейнера
     const dropX = e.clientX;
     const dropY = e.clientY;
     const containerRect = allowedContainer.getBoundingClientRect();
@@ -885,11 +834,9 @@ function finishDrag(e) {
     }
 
     if (hoveredElement && hoveredElement !== part) {
-        // В tray только сборка, оборачивание только в wrappingDoll
         if (hoveredElement.classList.contains('completed-doll') &&
             (hoveredElement.parentElement === wrappingDoll ||
                 hoveredElement.parentElement.parentElement === wrappingDoll)) {
-            // Это оборачивание в wrappingDoll
             if (CONFIG.allowWrapping) {
                 const draggedScale = parseFloat(part.style.getPropertyValue('--scale') || '1');
                 const innerScale = parseFloat(hoveredElement.dataset.innerScale || '1');
@@ -908,12 +855,10 @@ function finishDrag(e) {
             }
         }
 
-        // Обработка для wrapping-group (если это оборачиваемая группа)
         if (hoveredElement.dataset.type === 'wrapping') {
             const innerDoll = hoveredElement.querySelector('.completed-doll');
             if (innerDoll) {
                 hoveredElement = innerDoll;
-                // Проверяем, что это оборачивание в wrappingDoll
                 if (CONFIG.allowWrapping && hoveredElement.parentElement.parentElement === wrappingDoll) {
                     wrapAroundDoll(part, hoveredElement);
                     dragging = null;
@@ -926,7 +871,6 @@ function finishDrag(e) {
         let hoveredSetId = hoveredElement.dataset.setId;
         const allowedTargets = ATTACH_RULES[type] || [];
 
-        // Если это completed-doll в tray - запрещаем
         if (hoveredElement.classList.contains('completed-doll') && !hoveredElement.dataset.type === 'wrapping') {
             if (originParent === tray) {
                 returnToTray(part);
@@ -970,7 +914,6 @@ function finishDrag(e) {
             }
         }
     } else {
-        // Если отпустили не на другой элемент, просто помещаем в контейнер
         if (allowedContainer === tray) {
             placeInTray(part);
         } else if (allowedContainer === wrappingTray) {
@@ -1007,9 +950,9 @@ function wrapAroundDoll(newPart, completedDoll) {
     if (!wrapGroup) {
         const wrappingId = `wrap_${setIdCounter++}`;
         completedDoll.dataset.wrappingId = wrappingId;
-        
+
         const existingParts = completedDoll.dataset.containsParts || completedDoll.dataset.imageSetId;
-        
+
         wrapGroup = {
             wrappingId: wrappingId,
             innerDoll: completedDoll,
@@ -1018,11 +961,10 @@ function wrapAroundDoll(newPart, completedDoll) {
             base: null,
             container: null,
             outerSetId: newSetId,
-            innerParts: existingParts // Сохраняем информацию о внутренних частях
+            innerParts: existingParts
         };
         wrappingGroups.set(wrappingId, wrapGroup);
 
-        // Удаляем из движущихся объектов
         completedDollMovers = completedDollMovers.filter(m => m.element !== completedDoll);
 
         const container = document.createElement('div');
@@ -1051,7 +993,6 @@ function wrapAroundDoll(newPart, completedDoll) {
     }
 
     if (newSetId !== wrapGroup.outerSetId) {
-        // Возвращаем в правильный контейнер
         if (originParent === tray) {
             returnToTray(newPart);
         } else if (originParent === wrappingTray) {
@@ -1079,7 +1020,6 @@ function positionWrappingGroup(wrapGroup) {
 
     if (parts.length === 0) return;
 
-    // Размеры внутренней матрешки
     const innerWidth = wrapGroup.innerDoll.offsetWidth || 100;
     const innerHeight = wrapGroup.innerDoll.offsetHeight || 200;
     const OVERLAP_RATIO = 0.5;
@@ -1138,11 +1078,9 @@ function positionWrappingGroup(wrapGroup) {
         totalHeight += innerBaseHeight;
     }
 
-    // Устанавливаем размеры контейнера
     wrapGroup.container.style.width = `${maxWidth}px`;
     wrapGroup.container.style.height = `${totalHeight}px`;
 
-    // Центрируем внутреннюю матрешку внутри контейнера
     const centerY = totalHeight / 2;
     const innerY = centerY - innerHeight / 2;
 
@@ -1150,9 +1088,8 @@ function positionWrappingGroup(wrapGroup) {
     wrapGroup.innerDoll.style.left = `${(maxWidth - innerWidth) / 2}px`;
     wrapGroup.innerDoll.style.top = `${innerY}px`;
     wrapGroup.innerDoll.style.zIndex = '5';
-    wrapGroup.innerDoll.style.transform = 'none'; // Убираем transform так как центрируем через контейнер
+    wrapGroup.innerDoll.style.transform = 'none';
 
-    // Позиционируем детали обертки
     if (wrapGroup.head) {
         const headY = innerY - headHeight + (innerHeadHeight * OVERLAP_RATIO);
         wrapGroup.head.style.position = 'absolute';
@@ -1180,13 +1117,11 @@ function positionWrappingGroup(wrapGroup) {
         wrapGroup.base.style.pointerEvents = 'auto';
     }
 
-    // Если в левой панели - центрируем контейнер
     if (wrapGroup.isInWrappingDoll) {
         wrapGroup.container.style.left = '50%';
         wrapGroup.container.style.top = '50%';
         wrapGroup.container.style.transform = 'translate(-50%, -50%)';
     } else {
-        // Для правой панели - оставляем движение
         const wrappingTrayRect = wrappingTray.getBoundingClientRect();
         const maxX = Math.max(0, wrappingTrayRect.width - maxWidth);
         const maxY = Math.max(0, wrappingTrayRect.height - totalHeight);
@@ -1211,7 +1146,6 @@ function tryMoveNextFromQueue() {
     if (currentWrappingDoll || waitingDolls.length === 0) return;
     const next = waitingDolls.shift();
     if (next && next.doll && next.doll.parentElement) {
-        // Удаляем из движения и из tray
         completedDollMovers = completedDollMovers.filter(m => m.element !== next.doll);
         next.doll.remove();
         placeInWrappingDoll(next.doll, next.scale);
@@ -1221,28 +1155,23 @@ function checkWrappingComplete(wrapGroup) {
     if (wrapGroup.head && wrapGroup.body && wrapGroup.base) {
         const outerScale = parseFloat(wrapGroup.head.style.getPropertyValue('--scale') || '1');
         const imageSetId = (wrapGroup.outerSetId % 3) + 1;
-        
+
         let allParts = [];
-        
-        // Добавляем внутренние части (если они есть)
+
         if (wrapGroup.innerParts) {
             allParts = wrapGroup.innerParts.split(',');
         } else {
-            // Иначе берем только внутреннюю матрешку
             allParts = [wrapGroup.innerDoll.dataset.imageSetId || '1'];
         }
-        
-        // Добавляем внешнюю оболочку
+
         allParts.push(imageSetId);
-        
+
         const newCompletedDoll = createCompletedDollFromWrap(wrapGroup, outerScale, imageSetId);
-        
-        // Сохраняем информацию о всех частях
+
         newCompletedDoll.dataset.containsParts = allParts.join(',');
-        
+
         updateProgressUI();
-        
-        // Если это самая большая (1.25) — отправляем на полку
+
         if (outerScale >= 1.25) {
             collectFinalDoll(newCompletedDoll);
             wrapGroup.container.remove();
@@ -1263,12 +1192,11 @@ function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
     doll.dataset.type = 'completed';
     doll.dataset.innerScale = scale;
     doll.dataset.imageSetId = imageSetId;
-    
-    // Сохраняем wrappingId для связи с wrapGroup
+
     if (wrapGroup && wrapGroup.wrappingId) {
         doll.dataset.wrappingId = wrapGroup.wrappingId;
     }
-    
+
     const img = document.createElement('img');
     img.src = `img/matr${imageSetId}.png`;
     img.style.width = '100px';
@@ -1278,27 +1206,24 @@ function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
     img.style.transformOrigin = 'center';
     img.style.pointerEvents = 'none';
     doll.appendChild(img);
-    
+
     if (CONFIG.name === 'Уровень 3' && Math.random() < 0.4) {
         doll.classList.add('dirty');
     }
-    
+
     return doll;
 }
 
 let completedDollMovers = [];
 function createWrappingParts(innerScale) {
     if (!wrappingTray) return;
-    // Очищаем только части, сохраняя матрешку если есть
     const dolls = wrappingTray.querySelectorAll('.completed-doll');
     wrappingTray.innerHTML = '';
     dolls.forEach(doll => wrappingTray.appendChild(doll));
-    // Находим размер больше текущей матрешки
     const largerSizes = SIZES.filter(s => s.scale > innerScale);
     if (largerSizes.length === 0) return;
-    const wrappingSize = largerSizes[0]; // Берем первый больший размер
+    const wrappingSize = largerSizes[0];
     const wrappingSetId = setIdCounter++;
-    // Создаем закрепленные части для оборачивания
     ['head', 'body', 'base'].forEach((type) => {
         const part = document.createElement('div');
         part.className = `part part-${type} wrapping-part`;
@@ -1474,13 +1399,11 @@ function isPartInCompleteGroup(part) {
     const group = assembledGroups.get(setId);
     return group && group.head && group.body && group.base;
 }
-// Обновленная функция checkGroupComplete
 function checkGroupComplete(group, setId) {
     if (group.head && group.body && group.base) {
         const scale = parseFloat(group.head.style.getPropertyValue('--scale') || '1');
         const imageSetId = group.head.dataset.imageSetId;
 
-        // Создаём визуальную готовую матрёшку
         const completedDoll = document.createElement('div');
         completedDoll.className = 'assembled-group completed-doll';
         completedDoll.style.position = 'absolute';
@@ -1488,21 +1411,17 @@ function checkGroupComplete(group, setId) {
         completedDoll.dataset.innerScale = scale;
         completedDoll.dataset.setId = setId;
         completedDoll.dataset.imageSetId = imageSetId;
-        
-        // Создаем строку с информацией о всех частях в этой матрешке
-        let partsInfo = [imageSetId]; // Начинаем с текущей матрешки
-        
-        // Проверяем, содержит ли уже какая-то из частей информацию о вложенных матрешках
+
+        let partsInfo = [imageSetId];
+
         const parts = [group.head, group.body, group.base];
         parts.forEach(part => {
             if (part.dataset.containsParts) {
-                // Если часть уже содержит другие матрешки (например, это обернутая матрешка)
                 const innerParts = part.dataset.containsParts.split(',');
-                partsInfo.unshift(...innerParts); // Добавляем в начало (они меньше)
+                partsInfo.unshift(...innerParts);
             }
         });
-        
-        // Сохраняем информацию о всех частях
+
         completedDoll.dataset.containsParts = partsInfo.join(',');
 
         const matryoshkaImg = document.createElement('img');
@@ -1517,7 +1436,6 @@ function checkGroupComplete(group, setId) {
 
         updateProgressUI();
 
-        // Удаляем старую группу
         if (group.container) group.container.remove();
         assembledGroups.delete(setId);
 
@@ -1526,7 +1444,6 @@ function checkGroupComplete(group, setId) {
             return;
         }
 
-        // Логика размещения для оборачиваемых матрёшек
         if (!currentWrappingDoll) {
             placeInWrappingDoll(completedDoll, scale);
         } else {
@@ -1549,7 +1466,6 @@ function placeInWrappingDoll(doll, scale) {
     doll.style.top = '50%';
     doll.style.transform = 'translate(-50%, -50%)';
     doll.style.pointerEvents = 'none';
-    // Удаляем из движения, если вдруг была
     completedDollMovers = completedDollMovers.filter(m => m.element !== doll);
     generateNextWrappingParts(scale);
 }
@@ -1573,12 +1489,9 @@ function placeInMainTrayFloating(doll, scale) {
 }
 function generateNextWrappingParts(currentScale) {
     if (!wrappingTray) return;
-    // Очищаем старые детали оборачивания
     wrappingTray.querySelectorAll('.part').forEach(p => p.remove());
-    // Находим следующий больший размер
     const nextSize = SIZES.find(s => s.scale > currentScale);
     if (!nextSize) {
-        // Это уже самая большая — больше оборачивать нечего
         console.log('Достигнута максимальная матрёшка (Большая)');
         return;
     }
@@ -1592,33 +1505,29 @@ function collectFinalDoll(completedDoll) {
     const scale = parseFloat(completedDoll.dataset.innerScale || '1');
     const imageSetId = completedDoll.dataset.imageSetId || '1';
     const partsInfo = completedDoll.dataset.containsParts || imageSetId;
-    
-    // Сохраняем информацию о собранной матрешке
+
     const dollInfo = {
         id: `doll_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         scale: scale,
         imageSetId: imageSetId,
-        parts: partsInfo.split(','), // Массив из номеров наборов
+        parts: partsInfo.split(','),
         timestamp: Date.now()
     };
-    
-    // Сохраняем в историю
+
     assembledDollsHistory.push(dollInfo);
-    
-    // Создаем элемент для полки
+
     buildDoll(dollInfo);
-    
+
     built += 1;
     collectedMatryoshkas += 1;
     updateProgressUI();
     completedDoll.remove();
-    
-    // Если это была в левой панели — освобождаем
+
     if (completedDoll === currentWrappingDoll) {
         currentWrappingDoll = null;
         setTimeout(tryMoveNextFromQueue, 300);
     }
-    
+
     if (built >= CONFIG.goal) {
         setTimeout(() => showWinModal(), 500);
     }
@@ -1633,12 +1542,12 @@ function returnToTray(part) {
 function buildDoll(dollInfo) {
     const doll = document.createElement('div');
     doll.className = 'doll';
-    doll.dataset.dollId = dollInfo.id; // Сохраняем ID для поиска в истории
-    doll.dataset.parts = dollInfo.parts.join(','); // Сохраняем части в data-атрибуте
-    
+    doll.dataset.dollId = dollInfo.id;
+    doll.dataset.parts = dollInfo.parts.join(',');
+
     const imageSetId = dollInfo.imageSetId;
     const scale = dollInfo.scale;
-    
+
     const matryoshkaImg = document.createElement('img');
     matryoshkaImg.src = `img/matr${imageSetId}.png`;
     matryoshkaImg.alt = 'Матрёшка';
@@ -1647,7 +1556,7 @@ function buildDoll(dollInfo) {
     matryoshkaImg.style.objectFit = 'contain';
     matryoshkaImg.style.transformOrigin = 'center bottom';
     matryoshkaImg.style.cursor = 'pointer';
-    
+
     const label = document.createElement('div');
     label.className = 'd-label';
     label.textContent = `Матрёшка ${dollIndex++}`;
@@ -1655,22 +1564,20 @@ function buildDoll(dollInfo) {
     label.style.bottom = '-10px';
     label.style.left = '50%';
     label.style.transform = 'translateX(-50%)';
-    
+
     const container = document.createElement('div');
     container.style.position = 'relative';
     container.style.display = 'inline-block';
     container.appendChild(matryoshkaImg);
     container.appendChild(label);
     doll.appendChild(container);
-    
+
     shelf.appendChild(doll);
-    
-    // Добавляем обработчик клика для показа вложенных матрешек
+
     doll.addEventListener('click', () => showDollLayers(dollInfo));
 }
 
 function showDollLayers(dollInfo) {
-    // Создаем модальное окно для показа вложенных матрешек
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.id = 'layersModal';
@@ -1684,7 +1591,7 @@ function showDollLayers(dollInfo) {
     modal.style.width = '100%';
     modal.style.height = '100%';
     modal.style.zIndex = '2000';
-    
+
     const modalContent = document.createElement('div');
     modalContent.className = 'modal-content';
     modalContent.style.backgroundColor = '#fff';
@@ -1695,50 +1602,47 @@ function showDollLayers(dollInfo) {
     modalContent.style.maxHeight = '80%';
     modalContent.style.overflowY = 'auto';
     modalContent.style.position = 'relative';
-    
+
     const title = document.createElement('h2');
     title.textContent = 'Вложенные матрёшки';
     title.style.textAlign = 'center';
     title.style.marginBottom = '20px';
     title.style.color = '#333';
-    
+
     const layersContainer = document.createElement('div');
     layersContainer.style.display = 'flex';
     layersContainer.style.flexWrap = 'wrap';
     layersContainer.style.gap = '20px';
     layersContainer.style.justifyContent = 'center';
     layersContainer.style.alignItems = 'center';
-    
-    // Получаем уникальные части (убираем дубликаты)
+
     const uniqueParts = [...new Set(dollInfo.parts)];
-    
-    // Показываем матрешки от самой маленькой к самой большой
+
     uniqueParts.sort((a, b) => a - b);
-    
-    // Добавляем каждую матрешку
+
     uniqueParts.forEach((imageSetId, index) => {
         const layerItem = document.createElement('div');
         layerItem.style.display = 'flex';
         layerItem.style.flexDirection = 'column';
         layerItem.style.alignItems = 'center';
         layerItem.style.gap = '10px';
-        
+
         const img = document.createElement('img');
         img.src = `img/matr${imageSetId}.png`;
         img.style.width = '150px';
         img.style.height = 'auto';
         img.style.objectFit = 'contain';
-        
+
         const label = document.createElement('span');
         label.textContent = index === 0 ? 'Внутренняя' : `Слой ${index}`;
         label.style.fontSize = '16px';
         label.style.color = '#666';
-        
+
         layerItem.appendChild(img);
         layerItem.appendChild(label);
         layersContainer.appendChild(layerItem);
     });
-    
+
     const closeBtn = document.createElement('button');
     closeBtn.textContent = 'Закрыть';
     closeBtn.style.marginTop = '30px';
@@ -1750,23 +1654,22 @@ function showDollLayers(dollInfo) {
     closeBtn.style.cursor = 'pointer';
     closeBtn.style.display = 'block';
     closeBtn.style.margin = '20px auto 0';
-    
+
     closeBtn.addEventListener('click', () => {
         modal.remove();
     });
-    
+
     modalContent.appendChild(title);
     modalContent.appendChild(layersContainer);
     modalContent.appendChild(closeBtn);
     modal.appendChild(modalContent);
-    
-    // Закрытие по клику на оверлей
+
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.remove();
         }
     });
-    
+
     document.body.appendChild(modal);
 }
 
@@ -1819,12 +1722,12 @@ function initializeLevel() {
     CONFIG.allowWrapping = originalConfig.allowWrapping;
     CONFIG.next = originalConfig.next;
     levelNameEl.textContent = CONFIG.name;
-    
+
     built = 0;
     collectedMatryoshkas = 0;
-    assembledDollsHistory = []; // Очищаем историю
-    dollIndex = 1; // Сбрасываем счетчик матрешек
-    
+    assembledDollsHistory = [];
+    dollIndex = 1;
+
     updateProgressUI();
     gameStartTime = Date.now();
     lives = CONFIG.lives;
@@ -1859,58 +1762,45 @@ function moveParts() {
 
     // 1. Движение отдельных деталей в основной панели (partsTray)
     movers.forEach((m) => {
-        // Если деталь уже в собранной группе - удаляем из движения
         if (isPartInGroup(m.part)) {
             removeMover(m.part);
             return;
         }
 
-        // Обновляем позицию
         m.x += m.vx;
         m.y += m.vy;
 
-        // Проверяем границы основной панели
         const maxX = rect.width - m.part.offsetWidth;
         const maxY = rect.height - m.part.offsetHeight;
 
-        // Отскок от стен
         if (m.x <= 0 || m.x >= maxX) m.vx *= -1;
         if (m.y <= 0 || m.y >= maxY) m.vy *= -1;
 
-        // Ограничиваем позицию в пределах панели
         m.x = Math.min(Math.max(0, m.x), Math.max(0, maxX));
         m.y = Math.min(Math.max(0, m.y), Math.max(0, maxY));
 
-        // Применяем новые координаты
         m.part.style.left = `${m.x}px`;
         m.part.style.top = `${m.y}px`;
     });
 
     // 2. Движение частично собранных групп в основной панели
     assembledGroups.forEach((group, setId) => {
-        // Пропускаем если нет контейнера или группа уже завершена
         if (!group.container || isPartInCompleteGroup(group.head || group.body || group.base)) return;
 
         const containerWidth = group.container.offsetWidth || 120;
         const containerHeight = group.container.offsetHeight || 200;
 
-        // Обновляем позицию группы
         group.x += group.vx;
         group.y += group.vy;
 
-        // Проверяем границы
         const maxX = rect.width - containerWidth;
         const maxY = rect.height - containerHeight;
 
-        // Отскок от стен
         if (group.x <= 0 || group.x >= maxX) group.vx *= -1;
         if (group.y <= 0 || group.y >= maxY) group.vy *= -1;
-
-        // Ограничиваем позицию
         group.x = Math.min(Math.max(0, group.x), Math.max(0, maxX));
         group.y = Math.min(Math.max(0, group.y), Math.max(0, maxY));
 
-        // Применяем новые координаты контейнера
         group.container.style.left = `${group.x}px`;
         group.container.style.top = `${group.y}px`;
     });
@@ -1922,36 +1812,29 @@ function moveParts() {
             return;
         }
 
-        // Если элемент удален из DOM - удаляем из массива
         if (!m.element.parentElement) {
             completedDollMovers.splice(index, 1);
             return;
         }
 
-        // Рассчитываем размеры матрешки с учетом масштаба
         const baseWidth = 100;
         const baseHeight = 150;
         const scale = m.scale || 1;
         const width = baseWidth * scale;
         const height = baseHeight * scale;
 
-        // Обновляем позицию
         m.x += m.vx;
         m.y += m.vy;
 
-        // Проверяем границы основной панели (partsTray)
         const maxX = rect.width - width;
         const maxY = rect.height - height;
 
-        // Отскок от стен
         if (m.x <= 0 || m.x >= maxX) m.vx *= -1;
         if (m.y <= 0 || m.y >= maxY) m.vy *= -1;
 
-        // Ограничиваем позицию
         m.x = Math.min(Math.max(0, m.x), Math.max(0, maxX));
         m.y = Math.min(Math.max(0, m.y), Math.max(0, maxY));
 
-        // Применяем новые координаты
         m.element.style.left = `${m.x}px`;
         m.element.style.top = `${m.y}px`;
     });
@@ -2138,7 +2021,6 @@ function startGame() {
 const startGameBtn = document.getElementById('startGame');
 if (startGameBtn) {
     startGameBtn.addEventListener('click', () => {
-        // ИСПРАВЛЕНО: используем другое имя переменной, чтобы не конфликтовало
         const inputPlayerName = document.getElementById('playerName').value.trim() || 'Игрок';
 
 
@@ -2148,9 +2030,9 @@ if (startGameBtn) {
         }
 
         localStorage.setItem('playerName', inputPlayerName);
-        
 
-            window.location.href = 'level1.html'; // fallback
+
+        window.location.href = 'level1.html';
     });
 }
 
@@ -2163,7 +2045,6 @@ if (playerNameInput) {
     });
 }
 
-// Обработчик клавиши "и" для показа записки уровня
 document.addEventListener('keydown', (e) => {
     if (e.key === 'и' || e.key === 'И' || e.key === 'b' || e.key === 'B') {
         const note = document.getElementById('levelNote');

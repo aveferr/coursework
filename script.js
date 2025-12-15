@@ -2104,7 +2104,7 @@ function setupModalHandlers() {
         if (CONFIG.next) {
             window.location.href = CONFIG.next;
         } else {
-            window.location.href = 'start.html';
+            window.location.href = 'index.html';
         }
     });
     document.getElementById('restartLevelBtn').addEventListener('click', () => {
@@ -2112,14 +2112,14 @@ function setupModalHandlers() {
         initializeLevel();
     });
     document.getElementById('mainMenuBtn').addEventListener('click', () => {
-        window.location.href = 'start.html';
+        window.location.href = 'index.html';
     });
     document.getElementById('restartAfterLoseBtn').addEventListener('click', () => {
         hideModals();
         initializeLevel();
     });
     document.getElementById('mainMenuLoseBtn').addEventListener('click', () => {
-        window.location.href = 'start.html';
+        window.location.href = 'index.html';
     });
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.addEventListener('click', (e) => {

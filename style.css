@@ -862,8 +862,8 @@ button.ghost {
 }
 
 .tool img {
-    width: 60px;
-    height: 60px;
+    width: 5vw;
+    height: 5vw;
     object-fit: contain;
 }
 

@@ -1441,6 +1441,7 @@ function checkGroupComplete(group, setId) {
         if (!currentWrappingDoll) {
             placeInWrappingDoll(completedDoll, scale);
         } else {
+            placeInMainTrayFloating(completedDoll, scale);
             waitingDolls.push({ doll: completedDoll, scale, imageSetId });
         }
 
@@ -1719,6 +1720,7 @@ function updateProgressUI() {
         stopTimer();
     }
 }
+
 function initializeLevel() {
     const originalConfig = getLevelConfig();
     CONFIG.time = originalConfig.time;

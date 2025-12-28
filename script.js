@@ -1307,7 +1307,7 @@ function positionGroup(group) {
     const headWidth = group.head ? (group.head.offsetWidth || 96) * scale : 0;
     const bodyWidth = group.body ? (group.body.offsetWidth || 104) * scale : 0;
     const baseWidth = group.base ? (group.base.offsetWidth || 112) * scale : 0;
-    const OVERLAP_RATIO = 0.05;
+    const OVERLAP_RATIO = 0;
     let totalHeight = 0;
     if (group.head) totalHeight += headHeight;
     if (group.body) {
@@ -1416,18 +1416,26 @@ function checkGroupComplete(group, setId) {
         });
 
         completedDoll.dataset.containsParts = partsInfo.join(',');
-
         const matryoshkaImg = document.createElement('img');
+
+        if (!currentWrappingDoll) {
+            matryoshkaImg.style.width = `${72 * scale}%`;
+            matryoshkaImg.style.height = `${72 * scale}%`;
+
+            completedDoll.style.width = `100%`;
+            completedDoll.style.height = `100%`;
+        }
+        else {
+            matryoshkaImg.style.width = '100px';
+            matryoshkaImg.style.height = '150px';
+        }
         matryoshkaImg.src = `img/matr${imageSetId}.png`;
-        matryoshkaImg.style.width = `${72 * scale}%`;
-        matryoshkaImg.style.height = `${72 * scale}%`;
         matryoshkaImg.style.objectFit = 'contain';
         matryoshkaImg.style.transformOrigin = 'center';
         matryoshkaImg.style.pointerEvents = 'none';
         completedDoll.appendChild(matryoshkaImg);
 
-        completedDoll.style.width = `100%`;
-        completedDoll.style.height = `100%`;
+
         updateProgressUI();
 
         if (group.container) group.container.remove();
@@ -1441,8 +1449,9 @@ function checkGroupComplete(group, setId) {
         if (!currentWrappingDoll) {
             placeInWrappingDoll(completedDoll, scale);
         } else {
-            placeInMainTrayFloating(completedDoll, scale);
             waitingDolls.push({ doll: completedDoll, scale, imageSetId });
+            placeInMainTrayFloating(completedDoll, scale);
+
         }
 
         if (built >= CONFIG.goal) {
@@ -1828,11 +1837,8 @@ function moveParts() {
             return;
         }
 
-        const baseWidth = 100;
-        const baseHeight = 150;
-        const scale = m.scale || 1;
-        const width = baseWidth * scale;
-        const height = baseHeight * scale;
+        const width = m.element.offsetWidth;
+        const height = m.element.offsetHeight;
 
         m.x += m.vx;
         m.y += m.vy;

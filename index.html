@@ -47,6 +47,9 @@
                         НАЧАТЬ ИГРУ
                     </button>
                 </div>
+                <h3>🏆 Рейтинг игроков</h3>
+                <div id="leaderboard" class="leaderboard">
+                </div>
             </div>
         </div>
 
@@ -55,6 +58,11 @@
         </div>
     </div>
     <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadLeaderboard();
+        });
+    </script>
 </body>
 
 </html>

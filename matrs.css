@@ -8,12 +8,10 @@
   color: #1a1a1a;
   font-weight: 700;
   text-shadow: 0 1px 2px #ffffff88;
-  border: 2px solid #ffffffaa;
   border-radius: 12px;
   cursor: grab;
   user-select: none;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
-  background: rgba(255, 255, 255, 0.9);
   transform: scale(var(--scale, 1));
   transform-origin: center bottom;
   will-change: transform, left, top;
@@ -23,6 +21,7 @@
 .dirty {
   filter: brightness(0.7) sepia(0.5);
 }
+
 .part img {
   width: 100%;
   height: 100%;
@@ -31,28 +30,28 @@
 }
 
 #toolsPanel {
-    background: rgba(255, 255, 255, 0.7);
-    padding: 10px 20px;
-    border-radius: 20px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 5px 5px;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .tool {
-    transition: transform 0.2s;
+  transition: transform 0.2s;
 }
 
 .tool:hover {
-    transform: scale(1.2);
+  transform: scale(1.2);
 }
 
 .dirty {
-    filter: brightness(0.6) sepia(0.4) opacity(0.85);
+  filter: brightness(0.6) sepia(0.4) opacity(0.85);
 }
 
 .wrong-assembly {
-    border: 3px dashed red;
-    border-radius: 20px;
-    padding: 10px;
+  border: 3px dashed red;
+  border-radius: 20px;
+  padding: 10px;
 }
 
 .part span {
@@ -94,14 +93,17 @@
   box-sizing: border-box;
 }
 
+.completed-doll {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .doll {
   position: relative;
-  width: 10.8vw;
-  height: 15.8vw;
+  height: 20vw;
   display: grid;
   place-items: center;
-  filter: drop-shadow(0 10px 18px #d1dcff88);
-  transform: scale(var(--scale, 1));
   transform-origin: center bottom;
   flex-shrink: 0;
 }
@@ -125,44 +127,68 @@
 }
 
 
-.wrapping-group, .assembled-group {
-    position: absolute;
-}
-
+/* Стили для группы обертки (wrapping group) */
 .wrapping-group {
-    position: absolute;
-    pointer-events: none;
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
-.wrapping-group > * {
-    pointer-events: auto;
+/* Внутренняя матрешка */
+.wrapping-group .inner-doll {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+
 }
 
-.completed-doll {
-    overflow: visible;
-    transition: clip-path 0.3s ease;
+/* Общие стили для оберточных частей */
+.wrapping-group .wrapping-part {
+  position: absolute;
+  pointer-events: auto;
+  transition: all 0.3s ease;
 }
 
-.wrapping-group .part {
-    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
-}
-
-.wrapping-group .completed-doll {
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
+/* Голова - сверху */
 .wrapping-group .part-head {
-    z-index: 10 !important;
+  z-index: 10;
+  height: 42%;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
+/* Тело - по центру */
 .wrapping-group .part-body {
-    z-index: 8 !important;
+  z-index: 8;
+  height: 33%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.wrapping-group .completed-doll {
-    z-index: 5 !important;
-}
-
+/* Основание - снизу */
 .wrapping-group .part-base {
-    z-index: 6 !important;
+  z-index: 6;
+  height: 25%;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Combined image for two parts */
+.wrapping-group .combined-image {
+  width: auto;
+  object-fit: contain;
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  left: 50%;
+  transform: translateX(-50%);
 }

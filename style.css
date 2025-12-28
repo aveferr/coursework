@@ -1,4 +1,3 @@
-
 * {
   box-sizing: border-box;
 }
@@ -38,6 +37,7 @@ h2 {
 .muted {
   color: #70748a;
   margin: 0;
+  height: 15%;
 }
 
 .panel {
@@ -176,14 +176,11 @@ button.ghost {
   cursor: not-allowed;
 }
 
-.parts-tray-wrapper {
-  flex: 1;
-  position: relative;
-}
+
 
 .parts-tray {
   position: relative;
-  min-height: 320px;
+  flex: 1;
   overflow: hidden;
 }
 
@@ -783,20 +780,7 @@ button.ghost {
   box-shadow: 0 6px 16px rgba(188, 199, 255, 0.2);
 }
 
-/* Эффект клея */
-.glued {
-    position: relative;
-    border: 2px dashed #ff9900;
-}
 
-.glue-spot {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background: rgba(255, 153, 0, 0.3);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-}
 
 @keyframes pulse {
     0% { opacity: 0.3; }
@@ -810,7 +794,6 @@ button.ghost {
     border: 3px solid rgba(255, 0, 0, 0.7);
     border-radius: 10px;
     background: rgba(255, 0, 0, 0.1);
-    display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px;
@@ -821,12 +804,6 @@ button.ghost {
     background: rgba(255, 68, 68, 0.1);
 }
 
-.glue-effect {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 50%;
-    animation: glueShine 3s infinite;
-}
 
 @keyframes glueShine {
     0% { transform: scale(1); opacity: 0.5; }
@@ -845,17 +822,18 @@ button.ghost {
 
 .tools-panel {
     display: flex;
-    gap: 40px;
+    gap: 20px;
 }
 
 .tool {
     cursor: grab;
     pointer-events: auto;
+    height: 2rem;
 }
 
 .tool img {
-    width: 5vw;
-    height: 5vw;
+    width: auto;
+    height: 100%;
     object-fit: contain;
 }
 
@@ -946,7 +924,7 @@ button.ghost {
     padding: 0 20px;
     position: relative; /* Если нужен для абсолютного позиционирования внутри */
     width: 100%;
-    height: 100%;
+    flex: 0 0 20%;
     overflow: hidden; /* Чтобы детали не вылезали за границы */
 }
 
@@ -974,7 +952,7 @@ button.ghost {
 }
 
 .doll:hover {
-    transform: scale(1.1) rotate(5deg);
+    transform: rotate(5deg);
     animation: dollPulse 2s ease-in-out infinite, dollGlow 2s ease-in-out infinite alternate;
 }
 
@@ -1034,9 +1012,8 @@ button.ghost {
   position: relative;
   border: 2px dashed #e4e7ee;
   border-radius: 12px;
-  padding: 20px;
+  padding: 0;
   background: linear-gradient(135deg, #fffdf8, #f7f9ff);
-  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1049,4 +1026,42 @@ button.ghost {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.completed-doll-img {
+  width: auto;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.leaderboard {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 15px;
+  margin: 15px 0;
+  border: 2px solid #e4e7ee;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.leaderboard-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e4e7ee;
+}
+
+.leaderboard-item:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-name {
+  font-weight: 600;
+}
+
+.leaderboard-score {
+  color: #ea1d24;
+  font-weight: 800;
 }

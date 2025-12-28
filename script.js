@@ -188,14 +188,12 @@ let assembledGroups = new Map();
 let timerInterval = null;
 let lastHighlight = 0;
 function randomFrom(list) {
-    console.log("randomFrom");
     return list[Math.floor(Math.random() * list.length)];
 }
 
 function makeWrappingPart({ type, setId, size }) {
-    console.log("makeWrappingPart");
     const part = document.createElement('div');
-    part.className = `part part-${type}`;
+    part.className = `part part-${type} wrapping-part`;
     part.dataset.type = type;
     part.dataset.setId = setId;
     const imageSetId = (setId % 3) + 1;
@@ -205,7 +203,6 @@ function makeWrappingPart({ type, setId, size }) {
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'contain';
-    img.style.userSelect = 'none';
     img.style.pointerEvents = 'none';
     const label = document.createElement('span');
     label.textContent = `${size.label}`;
@@ -213,6 +210,8 @@ function makeWrappingPart({ type, setId, size }) {
     part.appendChild(label);
     part.dataset.imageSetId = imageSetId;
     part.style.setProperty('--scale', size.scale);
+    part.style.width = `${72 * size}%`
+    part.style.width = `${72 * size}%`
     enableDrag(part);
     wrappingTray.appendChild(part);
     placeInWrappingTray(part);
@@ -314,7 +313,7 @@ function createGluedPairs(part1, part2) {
 
     const glueLabel = document.createElement('div');
     glueLabel.className = 'glue-label';
-    glueLabel.textContent = 'Склеено!';
+    glueLabel.textContent = 'Прибито!';
     gluedGroup.appendChild(glueLabel);
 
     tray.appendChild(gluedGroup);
@@ -423,29 +422,30 @@ function enableToolDrag(tool) {
             }
 
             const upCoords = getToolEventCoords(e);
-            const target = findPartUnderCursor(upCoords.clientX, upCoords.clientY);
-
-            if (target) {
-                if (tool.dataset.tool === 'sponge') {
-
-                    if (target.classList.contains('dirty')) {
-                        target.classList.remove('dirty');
-                        console.log('Очищено губкой!');
-                    } else {
-                        console.log('Губкой можно очищать только грязные детали!');
+            if (tool.dataset.tool === 'sponge') {
+                const candidates = Array.from(document.querySelectorAll('.part, .assembled-group, .completed-doll, .wrapping-group, .glued-pair'));
+                candidates.forEach(element => {
+                    if (element.classList.contains('dragging')) return;
+                    const rect = element.getBoundingClientRect();
+                    const padding = 10;
+                    if (
+                        upCoords.clientX >= rect.left - padding &&
+                        upCoords.clientX <= rect.right + padding &&
+                        upCoords.clientY >= rect.top - padding &&
+                        upCoords.clientY <= rect.bottom + padding
+                    ) {
+                        if (element.classList.contains('dirty')) {
+                            element.classList.remove('dirty');
+                        }
                     }
-
-                } else if (tool.dataset.tool === 'hammer') {
-                    let targetToBreak = target.closest('.glued-pair');
-                    if (targetToBreak && targetToBreak.dataset.isGluedPair === 'true') {
-                        breakGluedPair(targetToBreak);
-                        console.log('Разбита слипшаяся пара молотком!');
-                        return;
-                    }
-                    console.log('Молотком можно разбивать только склеенные пары!');
+                });
+            } else if (tool.dataset.tool === 'hammer') {
+                const elementUnderCursor = document.elementFromPoint(upCoords.clientX, upCoords.clientY);
+                const targetToBreak = elementUnderCursor ? elementUnderCursor.closest('.glued-pair') : null;
+                if (targetToBreak && targetToBreak.dataset.isGluedPair === 'true') {
+                    breakGluedPair(targetToBreak);
+                    return;
                 }
-            } else {
-                console.log('Не удалось найти цель для инструмента');
             }
 
             document.removeEventListener('pointermove', move);
@@ -577,8 +577,13 @@ function enableDrag(part) {
         if (part.classList.contains('dirty')) {
             return;
         }
+        if (part.closest('#wrappingDoll')) {
+            return;
+        }
 
-        e.preventDefault();
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         const coords = getEventCoords(e);
 
         if (e.pointerId !== undefined) {
@@ -627,6 +632,13 @@ function enableDrag(part) {
         stopAnimation();
         moveAt(coords.clientX, coords.clientY);
         highlightTargets(part);
+
+        // Disable pointer events on other draggable elements to prevent interference
+        document.querySelectorAll('.part, .assembled-group, .completed-doll, .wrapping-group, .glued-pair').forEach(el => {
+            if (el !== part && !el.classList.contains('dragging')) {
+                el.style.pointerEvents = 'none';
+            }
+        });
     }
 
     function moveDrag(e) {
@@ -664,6 +676,12 @@ function enableDrag(part) {
 
         finishDrag({ clientX: coords.clientX, clientY: coords.clientY });
         startAnimation();
+
+        // Restore pointer events on other draggable elements
+        document.querySelectorAll('.part, .assembled-group, .completed-doll, .wrapping-group, .glued-pair').forEach(el => {
+            el.style.pointerEvents = '';
+        });
+
         dragging = null;
     }
 
@@ -694,10 +712,10 @@ function moveAt(x, y) {
     const partHeight = part.offsetHeight;
 
 
-    const minX = containerRect.left;
-    const maxX = containerRect.right;
-    const minY = containerRect.top;
-    const maxY = containerRect.bottom;
+    const minX = containerRect.left + offsetX;
+    const maxX = containerRect.right - partWidth + offsetX;
+    const minY = containerRect.top + offsetY;
+    const maxY = containerRect.bottom - partHeight + offsetY;
 
     x = Math.max(minX, Math.min(x, maxX));
     y = Math.max(minY, Math.min(y, maxY));
@@ -736,7 +754,6 @@ function highlightTargets(draggedPart) {
         }
     });
 }
-
 
 
 
@@ -784,44 +801,12 @@ function finishDrag(e) {
         });
     }
 
-    let hoveredElement = findPartUnderCursor(e.clientX, e.clientY);
-
-    const isInWrappingArea = allowedContainer.classList.contains('wrapping-area') ||
-        allowedContainer.id === 'wrappingParts' ||
-        allowedContainer.closest('.wrapping-area');
-
-    if (isInWrappingArea && hoveredElement && hoveredElement.classList.contains('part')) {
-        if (originParent === wrappingTray) {
-            returnToWrappingTray(part);
-        }
-        dragging = null;
-        return;
-    }
-
-    part.classList.remove('dragging');
-    part.style.position = 'absolute';
-    part.style.zIndex = '';
-
-    Array.from(tray.querySelectorAll('.part, .assembled-group')).forEach((p) => {
-        p.classList.remove('can-attach');
-    });
 
     const dropX = e.clientX;
     const dropY = e.clientY;
     const containerRect = allowedContainer.getBoundingClientRect();
     const isWithinAllowedArea = dropX >= containerRect.left && dropX <= containerRect.right &&
         dropY >= containerRect.top && dropY <= containerRect.bottom;
-
-    if (CONFIG.allowWrapping && hoveredElement && hoveredElement.classList.contains('completed-doll') &&
-        hoveredElement.parentElement === wrappingDoll) {
-        const draggedScale = parseFloat(part.style.getPropertyValue('--scale') || '1');
-        const innerScale = parseFloat(hoveredElement.dataset.innerScale || '1');
-        if (draggedScale > innerScale) {
-            wrapAroundDoll(part, hoveredElement);
-            dragging = null;
-            return;
-        }
-    }
 
     if (!isWithinAllowedArea) {
         if (originParent === tray) {
@@ -833,54 +818,90 @@ function finishDrag(e) {
         return;
     }
 
-    if (hoveredElement && hoveredElement !== part) {
-        if (hoveredElement.classList.contains('completed-doll') &&
-            (hoveredElement.parentElement === wrappingDoll ||
-                hoveredElement.parentElement.parentElement === wrappingDoll)) {
-            if (CONFIG.allowWrapping) {
-                const draggedScale = parseFloat(part.style.getPropertyValue('--scale') || '1');
-                const innerScale = parseFloat(hoveredElement.dataset.innerScale || '1');
-                if (draggedScale > innerScale) {
-                    wrapAroundDoll(part, hoveredElement);
-                } else {
-                    if (originParent === tray) {
-                        returnToTray(part);
-                    } else if (originParent === wrappingTray) {
-                        returnToWrappingTray(part);
-                    }
-                    loseLife('Деталь должна быть больше матрешки');
-                }
+    part.classList.remove('dragging');
+    part.style.position = 'absolute';
+    part.style.zIndex = '';
+
+    // Adjust position from viewport to container relative
+    const currentLeft = parseFloat(part.style.left || '0');
+    const currentTop = parseFloat(part.style.top || '0');
+    part.style.left = `${currentLeft - containerRect.left}px`;
+    part.style.top = `${currentTop - containerRect.top}px`;
+
+    Array.from(tray.querySelectorAll('.part, .assembled-group')).forEach((p) => {
+        p.classList.remove('can-attach');
+    });
+
+    let attached = false;
+
+    // Find all elements under cursor
+    const candidates = Array.from(document.querySelectorAll('.part, .assembled-group, .completed-doll, .wrapping-group, .glued-pair'));
+    const hoveredElements = [];
+    for (const element of candidates) {
+        if (element.classList.contains('dragging') || element === part) continue;
+        const rect = element.getBoundingClientRect();
+        const padding = 50; // Increased padding for easier dropping (only for correct parts)
+        if (
+            dropX >= rect.left - padding &&
+            dropX <= rect.right + padding &&
+            dropY >= rect.top - padding &&
+            dropY <= rect.bottom + padding
+        ) {
+            hoveredElements.push(element);
+        }
+    }
+
+    // Check for invalid drops without padding
+    console.log('finish drag');
+    // First, check for wrapping
+    for (const hoveredElement of hoveredElements) {
+        if (CONFIG.allowWrapping && hoveredElement.classList.contains('completed-doll') &&
+            hoveredElement.parentElement === wrappingDoll) {
+            console.log
+            const draggedScale = parseFloat(part.style.getPropertyValue('--scale') || '1');
+            const innerScale = parseFloat(hoveredElement.dataset.innerScale || '1');
+            if (draggedScale > innerScale) {
+                wrapAroundDoll(part, hoveredElement);
                 dragging = null;
                 return;
+            }
+        }
+        else {
+            if (hoveredElement === part) break;
+            if (hoveredElement.classList.contains('completed-doll') &&
+                (hoveredElement.parentElement === wrappingDoll ||
+                    hoveredElement.parentElement.parentElement === wrappingDoll)) {
+                if (CONFIG.allowWrapping) {
+                    const draggedScale = parseFloat(part.style.getPropertyValue('--scale') || '1');
+                    const innerScale = parseFloat(hoveredElement.dataset.innerScale || '1');
+                    if (draggedScale > innerScale) {
+                        wrapAroundDoll(part, hoveredElement);
+                        attached = true;
+                        break;
+                    }
+                }
             }
         }
 
         if (hoveredElement.dataset.type === 'wrapping') {
             const innerDoll = hoveredElement.querySelector('.completed-doll');
-            if (innerDoll) {
-                hoveredElement = innerDoll;
-                if (CONFIG.allowWrapping && hoveredElement.parentElement.parentElement === wrappingDoll) {
-                    wrapAroundDoll(part, hoveredElement);
-                    dragging = null;
-                    return;
-                }
+            if (innerDoll && CONFIG.allowWrapping && innerDoll.parentElement.parentElement === wrappingDoll) {
+                wrapAroundDoll(part, innerDoll);
+                attached = true;
+                break;
             }
+        }
+
+        if (hoveredElement.classList.contains('dirty')) {
+            loseLife('Нельзя прикреплять к грязной части');
+            returnToTray(part);
+            return;
         }
 
         let hoveredType = hoveredElement.dataset.type;
         let hoveredSetId = hoveredElement.dataset.setId;
         const allowedTargets = ATTACH_RULES[type] || [];
 
-        if (hoveredElement.classList.contains('completed-doll') && !hoveredElement.dataset.type === 'wrapping') {
-            if (originParent === tray) {
-                returnToTray(part);
-            } else if (originParent === wrappingTray) {
-                returnToWrappingTray(part);
-            }
-            loseLife('В этой области можно только собирать матрешки из деталей');
-            dragging = null;
-            return;
-        }
 
         const isSameSet = hoveredSetId === setId;
         const isStrictMatch = allowedTargets.includes(hoveredType);
@@ -888,7 +909,8 @@ function finishDrag(e) {
         const canAttach =
             isSameSet &&
             !isPartInCompleteGroup(hoveredElement) &&
-            (isStrictMatch || groupExists || hoveredType === 'group');
+            (isStrictMatch || groupExists || hoveredType === 'group') &&
+            !allowedContainer.classList.contains('wrapping-area');
 
         if (canAttach) {
             let targetPart = hoveredElement;
@@ -898,28 +920,23 @@ function finishDrag(e) {
             }
             if (targetPart) {
                 attachParts(part, targetPart);
+                attached = true;
+                break;
             }
-        } else {
-            if (originParent === tray) {
-                returnToTray(part);
-            } else if (originParent === wrappingTray) {
-                returnToWrappingTray(part);
-            }
-            if (!isSameSet) {
-                loseLife('Неверный размер');
-            } else if (isPartInCompleteGroup(hoveredElement)) {
-                loseLife('Матрешка уже собрана');
-            } else {
-                loseLife('Неверная комбинация');
-            }
-        }
-    } else {
-        if (allowedContainer === tray) {
-            placeInTray(part);
-        } else if (allowedContainer === wrappingTray) {
-            placeInWrappingTray(part);
         }
     }
+
+    if (!attached) {
+        if (hoveredElements.length > 0) {
+            loseLife('Неверная комбинация');
+        }
+        if (originParent === tray) {
+            returnToTray(part);
+        } else if (originParent === wrappingTray) {
+            returnToWrappingTray(part);
+        }
+    }
+
     dragging = null;
 }
 
@@ -932,7 +949,7 @@ function findPartUnderCursor(x, y) {
         const rect = element.getBoundingClientRect();
         const padding = 20;
         if (
-            x >= rect.left - padding &&
+            x >= rect.left + padding &&
             x <= rect.right + padding &&
             y >= rect.top - padding &&
             y <= rect.bottom + padding
@@ -942,7 +959,9 @@ function findPartUnderCursor(x, y) {
     }
     return null;
 }
+
 function wrapAroundDoll(newPart, completedDoll) {
+    const scale = parseFloat(newPart.style.getPropertyValue('--scale') || '1');
     const newSetId = newPart.dataset.setId;
     const newType = newPart.dataset.type;
     let wrapGroup = wrappingGroups.get(completedDoll.dataset.wrappingId);
@@ -982,10 +1001,6 @@ function wrapAroundDoll(newPart, completedDoll) {
         wrappingDoll.innerHTML = '';
         wrappingDoll.appendChild(container);
 
-        container.style.left = '50%';
-        container.style.top = '50%';
-        container.style.transform = 'translate(-50%, -50%)';
-
         wrapGroup.container = container;
         wrapGroup.x = 0;
         wrapGroup.y = 0;
@@ -1002,145 +1017,119 @@ function wrapAroundDoll(newPart, completedDoll) {
         return;
     }
 
-    if (newType === 'head') wrapGroup.head = newPart;
-    else if (newType === 'body') wrapGroup.body = newPart;
-    else if (newType === 'base') wrapGroup.base = newPart;
+    if (newType === 'head') {
+        wrapGroup.head = newPart;
+        newPart.style.height = `${72 * scale * 0.42}%`;
+        newPart.style.width = `auto`
+    }
 
+    else if (newType === 'body') {
+        wrapGroup.body = newPart;
+        newPart.style.height = `${72 * scale * 0.33}%`;
+        newPart.style.width = `auto`;
+
+    }
+    else if (newType === 'base') {
+        wrapGroup.base = newPart;
+        newPart.style.height = `${72 * scale * 0.25}%`;
+        newPart.style.width = `auto`;
+
+    }
     newPart.style.position = 'absolute';
     newPart.style.pointerEvents = 'auto';
+
+
     wrapGroup.container.appendChild(newPart);
     removeMover(newPart);
-    positionWrappingGroup(wrapGroup);
-    checkWrappingComplete(wrapGroup);
+
+    const parts = [wrapGroup.head, wrapGroup.body, wrapGroup.base].filter(Boolean);
+    if (parts.length === 2) {
+        const part1 = parts[0];
+        const part2 = parts[1];
+        const type1 = part1.dataset.type === 'head' ? '1' : part1.dataset.type === 'body' ? '2' : '3';
+        const type2 = part2.dataset.type === 'head' ? '1' : part2.dataset.type === 'body' ? '2' : '3';
+        const imageName = `img/matr${wrapGroup.outerSetId % 3 + 1}${type1}${type2}.png`;
+        // Create image element
+        const combinedImg = document.createElement('img');
+        combinedImg.src = imageName;
+        combinedImg.className = 'combined-image completed-doll-img';
+        if (type1 === '1') {
+            combinedImg.style.height = `${72 * 0.76 * scale}%`;
+            combinedImg.style.top = '0%';
+
+        } else {
+            combinedImg.style.height = `${72 * 0.58 * scale}%`;
+            combinedImg.style.bottom = '0%';
+
+        }
+
+        // Remove parts and add image
+        wrapGroup.container.innerHTML = '';
+        wrapGroup.container.appendChild(wrapGroup.innerDoll);
+        wrapGroup.container.appendChild(combinedImg);
+
+        // Mark as combined
+        wrapGroup.combined = true;
+        wrapGroup.combinedImage = imageName;
+        wrapGroup.parts = [part1, part2];
+    } else {
+        positionWrappingGroup(wrapGroup);
+        checkWrappingComplete(wrapGroup);
+    }
 }
 function positionWrappingGroup(wrapGroup) {
-    console.log("positionWrappingGroup");
     if (!wrapGroup.container || !wrapGroup.innerDoll) return;
     const parts = [wrapGroup.head, wrapGroup.body, wrapGroup.base].filter(Boolean);
 
     if (parts.length === 0) return;
 
-    const innerWidth = wrapGroup.innerDoll.offsetWidth || 100;
-    const innerHeight = wrapGroup.innerDoll.offsetHeight || 200;
-    const OVERLAP_RATIO = 0.5;
+    // Убираем все inline стили и используем CSS классы
+    wrapGroup.container.className = 'wrapping-group';
+    wrapGroup.innerDoll.className = 'completed-doll inner-doll';
 
-    let totalHeight = innerHeight;
-    let maxWidth = innerWidth;
-    let headHeight = 0, bodyHeight = 0, baseHeight = 0;
-    let headWidth = 0, bodyWidth = 0, baseWidth = 0;
+    // Просто добавляем все части в контейнер в правильном порядке
+    // CSS сам позаботится о позиционировании
 
-    if (parts.length > 0) {
-        const scale = parseFloat(parts[0].style.getPropertyValue('--scale') || '1');
 
-        if (wrapGroup.head) {
-            headHeight = (wrapGroup.head.offsetHeight || 96) * scale;
-            headWidth = (wrapGroup.head.offsetWidth || 96) * scale;
-        }
-        if (wrapGroup.body) {
-            bodyHeight = (wrapGroup.body.offsetHeight || 120) * scale;
-            bodyWidth = (wrapGroup.body.offsetWidth || 104) * scale;
-        }
-        if (wrapGroup.base) {
-            baseHeight = (wrapGroup.base.offsetHeight || 72) * scale;
-            baseWidth = (wrapGroup.base.offsetWidth || 112) * scale;
-        }
-
-        maxWidth = Math.max(headWidth, bodyWidth, baseWidth, innerWidth);
-    }
-
-    const innerHeadHeight = innerHeight * 0.3;
-    const innerBodyHeight = innerHeight * 0.4;
-    const innerBaseHeight = innerHeight * 0.3;
-
-    totalHeight = 0;
-    if (wrapGroup.head) {
-        totalHeight += headHeight - (innerHeadHeight * OVERLAP_RATIO);
-    }
-    if (wrapGroup.head) {
-        totalHeight += innerHeadHeight * OVERLAP_RATIO;
-    } else {
-        totalHeight += innerHeadHeight;
-    }
-    if (wrapGroup.body) {
-        totalHeight += bodyHeight - (innerBodyHeight * OVERLAP_RATIO);
-    }
-    if (wrapGroup.body) {
-        totalHeight += innerBodyHeight * OVERLAP_RATIO;
-    } else {
-        totalHeight += innerBodyHeight;
-    }
-    if (wrapGroup.base) {
-        totalHeight += baseHeight - (innerBaseHeight * OVERLAP_RATIO);
-    }
-    if (wrapGroup.base) {
-        totalHeight += innerBaseHeight * OVERLAP_RATIO;
-    } else {
-        totalHeight += innerBaseHeight;
-    }
-
-    wrapGroup.container.style.width = `${maxWidth}px`;
-    wrapGroup.container.style.height = `${totalHeight}px`;
-
-    const centerY = totalHeight / 2;
-    const innerY = centerY - innerHeight / 2;
-
-    wrapGroup.innerDoll.style.position = 'absolute';
-    wrapGroup.innerDoll.style.left = `${(maxWidth - innerWidth) / 2}px`;
-    wrapGroup.innerDoll.style.top = `${innerY}px`;
-    wrapGroup.innerDoll.style.zIndex = '5';
-    wrapGroup.innerDoll.style.transform = 'none';
-
-    if (wrapGroup.head) {
-        const headY = innerY - headHeight + (innerHeadHeight * OVERLAP_RATIO);
-        wrapGroup.head.style.position = 'absolute';
-        wrapGroup.head.style.left = `${(maxWidth - headWidth) / 2}px`;
-        wrapGroup.head.style.top = `${headY}px`;
-        wrapGroup.head.style.zIndex = '10';
-        wrapGroup.head.style.pointerEvents = 'auto';
-    }
-
-    if (wrapGroup.body) {
-        const bodyY = innerY + (innerBodyHeight * 0.3);
-        wrapGroup.body.style.position = 'absolute';
-        wrapGroup.body.style.left = `${(maxWidth - bodyWidth) / 2}px`;
-        wrapGroup.body.style.top = `${bodyY}px`;
-        wrapGroup.body.style.zIndex = '8';
-        wrapGroup.body.style.pointerEvents = 'auto';
-    }
+    wrapGroup.container.innerHTML = '';
 
     if (wrapGroup.base) {
-        const baseY = innerY + innerHeight - (innerBaseHeight * OVERLAP_RATIO);
+        wrapGroup.base.className = 'part part-base wrapping-part';
         wrapGroup.base.style.position = 'absolute';
-        wrapGroup.base.style.left = `${(maxWidth - baseWidth) / 2}px`;
-        wrapGroup.base.style.top = `${baseY}px`;
-        wrapGroup.base.style.zIndex = '6';
-        wrapGroup.base.style.pointerEvents = 'auto';
+        wrapGroup.base.style.left = '';
+        wrapGroup.base.style.top = '';
+        wrapGroup.container.appendChild(wrapGroup.base);
     }
 
-    if (wrapGroup.isInWrappingDoll) {
-        wrapGroup.container.style.left = '50%';
-        wrapGroup.container.style.top = '50%';
-        wrapGroup.container.style.transform = 'translate(-50%, -50%)';
-    } else {
-        const wrappingTrayRect = wrappingTray.getBoundingClientRect();
-        const maxX = Math.max(0, wrappingTrayRect.width - maxWidth);
-        const maxY = Math.max(0, wrappingTrayRect.height - totalHeight);
-
-        if (wrapGroup.vx === undefined || wrapGroup.vy === undefined) {
-            wrapGroup.vx = (Math.random() * 1.6 - 0.8) * (CONFIG.speed || 1) * 0.8;
-            wrapGroup.vy = (Math.random() * 1.6 - 0.8) * (CONFIG.speed || 1) * 0.8;
-        }
-
-        if (wrapGroup.x === undefined) wrapGroup.x = Math.random() * maxX;
-        if (wrapGroup.y === undefined) wrapGroup.y = Math.random() * maxY;
-
-        wrapGroup.x = Math.max(0, Math.min(wrapGroup.x, maxX));
-        wrapGroup.y = Math.max(0, Math.min(wrapGroup.y, maxY));
-
-        wrapGroup.container.style.left = `${wrapGroup.x}px`;
-        wrapGroup.container.style.top = `${wrapGroup.y}px`;
-        wrapGroup.container.style.transform = 'none';
+    if (wrapGroup.body) {
+        wrapGroup.body.className = 'part part-body wrapping-part';
+        wrapGroup.body.style.position = 'absolute';
+        wrapGroup.body.style.left = '';
+        wrapGroup.body.style.top = '';
+        wrapGroup.container.appendChild(wrapGroup.body);
     }
+
+    // Добавляем части в правильном порядке для z-index
+    if (wrapGroup.head) {
+        wrapGroup.head.className = 'part part-head wrapping-part';
+        wrapGroup.head.style.position = 'absolute';
+        wrapGroup.head.style.left = '';
+        wrapGroup.head.style.top = '';
+        wrapGroup.container.appendChild(wrapGroup.head);
+    }
+
+
+
+    // Добавляем внутреннюю матрешку
+    wrapGroup.innerDoll.style.position = 'absolute';
+    wrapGroup.innerDoll.style.left = '';
+    wrapGroup.innerDoll.style.top = '';
+    wrapGroup.container.appendChild(wrapGroup.innerDoll);
+
+    // Устанавливаем дата-атрибуты для CSS
+    wrapGroup.container.dataset.hasHead = !!wrapGroup.head;
+    wrapGroup.container.dataset.hasBody = !!wrapGroup.body;
+    wrapGroup.container.dataset.hasBase = !!wrapGroup.base;
 }
 function tryMoveNextFromQueue() {
     if (currentWrappingDoll || waitingDolls.length === 0) return;
@@ -1155,7 +1144,7 @@ function checkWrappingComplete(wrapGroup) {
     if (wrapGroup.head && wrapGroup.body && wrapGroup.base) {
         const outerScale = parseFloat(wrapGroup.head.style.getPropertyValue('--scale') || '1');
         const imageSetId = (wrapGroup.outerSetId % 3) + 1;
-
+        console.log(outerScale);
         let allParts = [];
 
         if (wrapGroup.innerParts) {
@@ -1165,11 +1154,10 @@ function checkWrappingComplete(wrapGroup) {
         }
 
         allParts.push(imageSetId);
-
+        console.log(outerScale);
         const newCompletedDoll = createCompletedDollFromWrap(wrapGroup, outerScale, imageSetId);
 
         newCompletedDoll.dataset.containsParts = allParts.join(',');
-
         updateProgressUI();
 
         if (outerScale >= 1.25) {
@@ -1190,7 +1178,12 @@ function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
     doll.className = 'assembled-group completed-doll';
     doll.style.position = 'absolute';
     doll.dataset.type = 'completed';
+    doll.style.width = '100%';
+    doll.style.height = '100%';
+
+
     doll.dataset.innerScale = scale;
+    console.log(doll.dataset.innerScale);
     doll.dataset.imageSetId = imageSetId;
 
     if (wrapGroup && wrapGroup.wrappingId) {
@@ -1199,10 +1192,10 @@ function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
 
     const img = document.createElement('img');
     img.src = `img/matr${imageSetId}.png`;
-    img.style.width = '100px';
-    img.style.height = 'auto';
+    img.style.width = `${72 * scale}%`;
+    img.style.height = `${72 * scale}%`;
+    console.log(img.style.width);
     img.style.objectFit = 'contain';
-    img.style.transform = `scale(${scale})`;
     img.style.transformOrigin = 'center';
     img.style.pointerEvents = 'none';
     doll.appendChild(img);
@@ -1426,14 +1419,15 @@ function checkGroupComplete(group, setId) {
 
         const matryoshkaImg = document.createElement('img');
         matryoshkaImg.src = `img/matr${imageSetId}.png`;
-        matryoshkaImg.style.width = '100px';
-        matryoshkaImg.style.height = 'auto';
+        matryoshkaImg.style.width = `${72 * scale}%`;
+        matryoshkaImg.style.height = `${72 * scale}%`;
         matryoshkaImg.style.objectFit = 'contain';
-        matryoshkaImg.style.transform = `scale(${scale})`;
         matryoshkaImg.style.transformOrigin = 'center';
         matryoshkaImg.style.pointerEvents = 'none';
         completedDoll.appendChild(matryoshkaImg);
 
+        completedDoll.style.width = `100%`;
+        completedDoll.style.height = `100%`;
         updateProgressUI();
 
         if (group.container) group.container.remove();
@@ -1447,13 +1441,14 @@ function checkGroupComplete(group, setId) {
         if (!currentWrappingDoll) {
             placeInWrappingDoll(completedDoll, scale);
         } else {
-            placeInMainTrayFloating(completedDoll, scale);
             waitingDolls.push({ doll: completedDoll, scale, imageSetId });
         }
 
         if (built >= CONFIG.goal) {
             setTimeout(() => showWinModal(), 500);
         }
+        console.log(scale);
+
     }
 }
 
@@ -1464,11 +1459,12 @@ function placeInWrappingDoll(doll, scale) {
     doll.style.position = 'absolute';
     doll.style.left = '50%';
     doll.style.top = '50%';
-    doll.style.transform = 'translate(-50%, -50%)';
+    doll.style.transform = 'translate(-50%, -50%) ';
     doll.style.pointerEvents = 'none';
     completedDollMovers = completedDollMovers.filter(m => m.element !== doll);
     generateNextWrappingParts(scale);
 }
+
 function placeInMainTrayFloating(doll, scale) {
     tray.appendChild(doll);
     const trayRect = tray.getBoundingClientRect();
@@ -1492,7 +1488,6 @@ function generateNextWrappingParts(currentScale) {
     wrappingTray.querySelectorAll('.part').forEach(p => p.remove());
     const nextSize = SIZES.find(s => s.scale > currentScale);
     if (!nextSize) {
-        console.log('Достигнута максимальная матрёшка (Большая)');
         return;
     }
     const setId = setIdCounter++;
@@ -1574,7 +1569,7 @@ function buildDoll(dollInfo) {
 
     shelf.appendChild(doll);
 
-    doll.addEventListener('click', () => showDollLayers(dollInfo));
+    doll.addEventListener('dblclick', () => showDollLayers(dollInfo));
 }
 
 function showDollLayers(dollInfo) {
@@ -1616,11 +1611,11 @@ function showDollLayers(dollInfo) {
     layersContainer.style.justifyContent = 'center';
     layersContainer.style.alignItems = 'center';
 
-    const uniqueParts = [...new Set(dollInfo.parts)];
+    const allParts = dollInfo.parts.slice(); // Копируем массив, чтобы не изменять оригинал
 
-    uniqueParts.sort((a, b) => a - b);
+    allParts.sort((a, b) => a - b);
 
-    uniqueParts.forEach((imageSetId, index) => {
+    allParts.forEach((imageSetId, index) => {
         const layerItem = document.createElement('div');
         layerItem.style.display = 'flex';
         layerItem.style.flexDirection = 'column';
@@ -1629,12 +1624,12 @@ function showDollLayers(dollInfo) {
 
         const img = document.createElement('img');
         img.src = `img/matr${imageSetId}.png`;
-        img.style.width = '150px';
+        img.style.width = '100px';
         img.style.height = 'auto';
         img.style.objectFit = 'contain';
 
         const label = document.createElement('span');
-        label.textContent = index === 0 ? 'Внутренняя' : `Слой ${index}`;
+        label.textContent = `Слой ${3 - index}`;
         label.style.fontSize = '16px';
         label.style.color = '#666';
 
@@ -1881,7 +1876,6 @@ function stopTimer() {
     }
 }
 function updateTimerUI(sec, totalTime) {
-    console.log(totalTime);
     const min = Math.floor(sec / 60);
     const s = sec % 60;
     if (timerEl) timerEl.textContent = `${min}:${s < 10 ? '0' : ''}${s}`;
@@ -1931,6 +1925,52 @@ function saveGameStats(result, matryoshkas, time, lives, score) {
         player: playerName
     };
     localStorage.setItem('lastGameStats', JSON.stringify(stats));
+
+    if (result === 'win') {
+        updateLeaderboard(playerName, score);
+    }
+}
+
+function updateLeaderboard(playerName, score) {
+    const playerStats = JSON.parse(localStorage.getItem(`playerStats_${playerName}`) || '{}');
+    let totalScore = 0;
+    for (const level in playerStats) {
+        if (playerStats[level].result === 'win') {
+            totalScore += playerStats[level].score;
+        }
+    }
+
+    let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+    const existing = leaderboard.find(entry => entry.name === playerName);
+    if (existing) {
+        existing.score = totalScore;
+        existing.date = new Date().toISOString();
+    } else {
+        leaderboard.push({ name: playerName, score: totalScore, date: new Date().toISOString() });
+    }
+    leaderboard.sort((a, b) => b.score - a.score);
+    leaderboard = leaderboard.slice(0, 10); // топ 10
+    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+}
+
+function loadLeaderboard() {
+    const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+    const container = document.getElementById('leaderboard');
+    if (!container) return;
+    container.innerHTML = '';
+    if (leaderboard.length === 0) {
+        container.innerHTML = '<p>Пока нет результатов</p>';
+        return;
+    }
+    leaderboard.forEach((entry, index) => {
+        const item = document.createElement('div');
+        item.className = 'leaderboard-item';
+        item.innerHTML = `
+            <span class="leaderboard-name">${index + 1}. ${entry.name}</span>
+            <span class="leaderboard-score">${entry.score}</span>
+        `;
+        container.appendChild(item);
+    });
 }
 function startConfetti() {
     const container = document.getElementById('confetti-container');

@@ -608,9 +608,7 @@ button.ghost {
     font-size: 1rem;
   }
 
-  h1, h2 {
-    font-size: 1.3rem;
-  }
+
 
   .start-container {
     padding: 10px;
@@ -685,7 +683,9 @@ button.ghost {
   gap: 10px;
 }
 
-
+h3{
+  color: #ff9aa2;
+}
 
 .rules-list {
   list-style: none;

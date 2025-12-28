@@ -126,6 +126,18 @@
   box-shadow: 0 16px 40px #00000088 !important;
 }
 
+.img-rocking {
+    animation: rocking 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes rocking {
+    0% {
+        transform: rotate(-5deg);
+    }
+    100% {
+        transform: rotate(5deg);
+    }
+}
 
 /* Стили для группы обертки (wrapping group) */
 .wrapping-group {

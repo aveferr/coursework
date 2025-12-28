@@ -1611,7 +1611,7 @@ function showDollLayers(dollInfo) {
     layersContainer.style.justifyContent = 'center';
     layersContainer.style.alignItems = 'center';
 
-    const allParts = dollInfo.parts.slice(); // Копируем массив, чтобы не изменять оригинал
+    const allParts = dollInfo.parts.slice();
 
     allParts.sort((a, b) => a - b);
 
@@ -1627,9 +1627,21 @@ function showDollLayers(dollInfo) {
         img.style.width = '100px';
         img.style.height = 'auto';
         img.style.objectFit = 'contain';
+        img.style.transition = 'transform 0.3s ease';
+
+        img.addEventListener('mouseenter', () => {
+            img.classList.add('img-rocking');
+        });
+
+        img.addEventListener('mouseleave', () => {
+            img.classList.remove('img-rocking');
+            // Возвращаем в исходное положение
+            img.style.transform = 'rotate(0deg)';
+        });
+
 
         const label = document.createElement('span');
-        label.textContent = `Слой ${3 - index}`;
+        label.textContent = `Слой ${allParts.length - index}`;
         label.style.fontSize = '16px';
         label.style.color = '#666';
 

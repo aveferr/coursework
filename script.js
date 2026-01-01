@@ -560,7 +560,6 @@ function clearAll() {
 }
 function enableDrag(part) {
     console.log("enableDrag");
-
     function getEventCoords(e) {
         if (e.touches && e.touches.length > 0) {
             return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
@@ -569,8 +568,8 @@ function enableDrag(part) {
         }
         return { clientX: e.clientX, clientY: e.clientY };
     }
-
     function startDrag(e) {
+        if (dragging) return; // Prevent multiple drags
         if (lives <= 0) {
             return;
         }
@@ -580,25 +579,21 @@ function enableDrag(part) {
         if (part.closest('#wrappingDoll')) {
             return;
         }
-
         if (e.cancelable) {
             e.preventDefault();
         }
         const coords = getEventCoords(e);
-
         if (e.pointerId !== undefined) {
             part.setPointerCapture(e.pointerId);
         }
-
         const rect = part.getBoundingClientRect();
         const originParent = part.parentElement;
         let allowedContainer;
-
         if (originParent === tray || originParent.closest('#partsTray')) {
             allowedContainer = tray;
         } else if (originParent === wrappingTray || originParent.closest('#wrappingParts')) {
-
             const wrappingArea = document.querySelector('.wrapping-area');
+
             if (wrappingArea) {
                 allowedContainer = wrappingArea;
             } else if (wrappingTray) {

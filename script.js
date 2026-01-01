@@ -569,7 +569,7 @@ function enableDrag(part) {
         return { clientX: e.clientX, clientY: e.clientY };
     }
     function startDrag(e) {
-        if (dragging) return; // Prevent multiple drags
+        if (dragging) return; 
         if (lives <= 0) {
             return;
         }

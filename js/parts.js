@@ -1,195 +1,14 @@
-function canAccessLevel(levelNum) {
-    console.log("canAccessLevel");
-    const playerName = localStorage.getItem('playerName') || 'Игрок';
-    if (playerName.toLowerCase() === 'admin') {
-        return true;
-    }
-    if (levelNum === 1) return true;
-    const playerStats = JSON.parse(localStorage.getItem(`playerStats_${playerName}`) || '{}');
-    for (let i = 1; i < levelNum; i++) {
-        const prevLevelStats = playerStats[`level${i}`];
-        if (!prevLevelStats || prevLevelStats.result !== 'win') {
-            return false;
-        }
-    }
-    return true;
-}
 
-
-document.addEventListener('DOMContentLoaded', function () {
-    const playerDisplay = document.createElement('div');
-    playerDisplay.className = 'hud-item';
-    playerDisplay.innerHTML = `
-        <div class="label">Игрок</div>
-        <div class="value">${playerName}</div>
-    `;
-
-    const hud = document.querySelector('.hud');
-    if (hud) {
-        hud.insertBefore(playerDisplay, hud.firstChild);
-    }
-
-    // Блокировка уровней
-    const levelLinks = document.querySelectorAll('a[href*="level"]');
-    levelLinks.forEach(link => {
-        const href = link.getAttribute('href');
-        const levelMatch = href.match(/level(\d)/);
-        if (levelMatch) {
-            const levelNum = parseInt(levelMatch[1]);
-            if (!canAccessLevel(levelNum)) {
-                link.classList.add('locked');
-                link.title = `Сначала пройдите предыдущие уровни`;
-            }
-        }
-    });
-});
-
-let assembledDollsHistory = [];
-let waitingDolls = [];
-const playerName = localStorage.getItem('playerName') || 'Игрок';
-let gameStartTime = null;
-let collectedMatryoshkas = 0;
-const tray = document.getElementById('partsTray');
-const wrappingTray = document.getElementById('wrappingParts');
-const wrappingDoll = document.getElementById('wrappingDoll');
-let currentWrappingDoll = null;
-const shelf = document.getElementById('shelf');
-const generateBtn = document.getElementById('generateParts');
-const clearBtn = document.getElementById('clearParts');
-const livesEl = document.getElementById('lives');
-const sizeLabel = document.getElementById('sizeLabel');
-const progressEl = document.getElementById('progress');
-const levelNameEl = document.getElementById('levelName');
-const timerEl = document.getElementById('timer');
-const timerProgressEl = document.getElementById('timerProgress');
-let wrappingGroups = new Map(); // Map<setId, {innerMatryoshka, head, body, base}>
-
-function showWinModal() {
-    console.log("showWinModal");
-    stopTimer();
-    stopAnimation();
-    const timeSpent = calculateTimeSpent();
-    const livesLeft = lives;
-    const totalScore = calculateScore(collectedMatryoshkas, timeSpent, livesLeft);
-    document.getElementById('scoreMatryoshkas').textContent = collectedMatryoshkas;
-    document.getElementById('scoreTime').textContent = formatTime(timeSpent);
-    document.getElementById('scoreLives').textContent = livesLeft;
-    document.getElementById('scoreTotal').textContent = totalScore;
-    document.getElementById('winModal').style.display = 'flex';
-    startConfetti();
-    saveGameStats('win', collectedMatryoshkas, timeSpent, livesLeft, totalScore);
-    const playerName = localStorage.getItem('playerName') || 'Игрок';
-    const levelNum = parseInt(CONFIG.name.split(' ')[1]);
-    const playerStats = JSON.parse(localStorage.getItem(`playerStats_${playerName}`) || '{}');
-    let summaryScore = 0;
-    let summaryLabel = '';
-    if (levelNum >= 2) {
-        for (let i = 1; i <= levelNum; i++) {
-            if (playerStats[`level${i}`]) {
-                summaryScore += playerStats[`level${i}`].score;
-            }
-        }
-        summaryLabel = levelNum === 2 ? 'Итоговый счет (уровни 1-2):' : 'Итоговый счет (уровни 1-3):';
-        document.getElementById('summaryItem').style.display = 'block';
-        document.getElementById('summaryLabel').textContent = summaryLabel;
-        document.getElementById('scoreSummary').textContent = summaryScore;
-    } else {
-        document.getElementById('summaryItem').style.display = 'none';
-    }
-}
-function showLoseModal(reason) {
-    console.log("showLoseModal");
-    stopTimer();
-    stopAnimation();
-    const timeLeft = getCurrentTime();
-    const timeSpent = calculateTimeSpent();
-    document.getElementById('loseMatryoshkas').textContent = collectedMatryoshkas;
-    document.getElementById('loseTime').textContent = formatTime(timeLeft);
-    document.getElementById('loseReason').textContent = reason;
-    document.getElementById('loseModal').style.display = 'flex';
-    saveGameStats('lose', collectedMatryoshkas, timeSpent, lives, 0);
-}
-function getLevelConfig() {
-    console.log("getLevelConfig");
-    const url = window.location.pathname;
-    const pageName = url.split('/').pop();
-    const levelMatch = pageName.match(/level(\d)/) || ['', '1'];
-    const levelNum = parseInt(levelMatch[1]) || 1;
-    const levels = {
-        1: {
-            name: 'Уровень 1',
-            goal: 3,
-            setsPerGeneration: 3,
-            lives: 3,
-            speed: 1,
-            time: 180,
-            next: 'level2.html',
-            allowWrapping: false
-        },
-        2: {
-            name: 'Уровень 2',
-            goal: 3,
-            setsPerGeneration: 3,
-            lives: 3,
-            speed: 1.2,
-            time: 120,
-            next: 'level3.html',
-            allowWrapping: true
-        },
-        3: {
-            name: 'Уровень 3',
-            goal: 3,
-            setsPerGeneration: 3,
-            lives: 3,
-            speed: 1.5,
-            time: 90,
-            next: '',
-            allowWrapping: true
-        }
-    };
-    return levels[levelNum];
-}
-const CONFIG = getLevelConfig();
-const IMAGE_SETS = {
-    1: {
-        head: 'img/matr11.png',
-        body: 'img/matr12.png',
-        base: 'img/matr13.png'
-    },
-    2: {
-        head: 'img/matr21.png',
-        body: 'img/matr22.png',
-        base: 'img/matr23.png'
-    },
-    3: {
-        head: 'img/matr31.png',
-        body: 'img/matr32.png',
-        base: 'img/matr33.png'
-    }
-};
-const SIZES = [
-    { label: 'Малая', scale: 0.8 },
-    { label: 'Средняя', scale: 1 },
-    { label: 'Большая', scale: 1.25 },
-];
-const ATTACH_RULES = {
-    head: ['body'],
-    body: ['head', 'base'],
-    base: ['body'],
-};
-let dollIndex = 1;
 let dragging = null;
-let lives = 3;
-let built = 0;
-let setIdCounter = 1;
 let movers = [];
 let animationId = null;
-let assembledGroups = new Map();
-let timerInterval = null;
 let lastHighlight = 0;
-function randomFrom(list) {
-    return list[Math.floor(Math.random() * list.length)];
-}
+let setIdCounter = 1;
+let assembledGroups = new Map();
+let wrappingGroups = new Map(); // Map<setId, {innerMatryoshka, head, body, base}>
+let currentWrappingDoll = null;
+let waitingDolls = [];
+let completedDollMovers = [];
 
 function makeWrappingPart({ type, setId, size }) {
     const part = document.createElement('div');
@@ -210,132 +29,11 @@ function makeWrappingPart({ type, setId, size }) {
     part.appendChild(label);
     part.dataset.imageSetId = imageSetId;
     part.style.setProperty('--scale', size.scale);
-    part.style.width = `${72 * size}%`
-    part.style.width = `${72 * size}%`
+    part.style.width = `${72 * size.scale}px`;
+    part.style.height = `${72 * size.scale}px`;
     enableDrag(part);
     wrappingTray.appendChild(part);
     placeInWrappingTray(part);
-}
-
-function generateSet() {
-    console.log("generateSet");
-    resetLives();
-    clearAll();
-
-    if (CONFIG.name === 'Уровень 3') {
-        document.querySelectorAll('#toolsPanel .tool').forEach(enableToolDrag);
-    }
-
-
-    const sizes = [];
-    const createdParts = [];
-
-    for (let i = 0; i < CONFIG.setsPerGeneration; i++) {
-        const size = randomFrom(SIZES);
-        const setId = setIdCounter++;
-        sizes.push(size.label);
-
-        ['head', 'body', 'base'].forEach((type) => {
-            const dirty = CONFIG.name === 'Уровень 3' && Math.random() < 0.4;
-            const isGlued = CONFIG.name === 'Уровень 3' && Math.random() < 0.3;
-
-            const part = makePart({
-                type,
-                setId,
-                size,
-                dirty,
-                isGlued: isGlued
-            });
-
-            createdParts.push(part);
-        });
-    }
-
-    if (CONFIG.name === 'Уровень 3') {
-        const numPairs = Math.min(2, Math.floor(createdParts.length / 2));
-
-        for (let i = 0; i < numPairs; i++) {
-            const idx1 = i * 2;
-            const idx2 = i * 2 + 1;
-
-            if (idx1 < createdParts.length && idx2 < createdParts.length) {
-                const part1 = createdParts[idx1];
-                const part2 = createdParts[idx2];
-
-                if (part1.dataset.type !== 'head' || part2.dataset.type !== 'head') {
-                    createGluedPairs(part1, part2);
-                }
-            }
-        }
-    }
-
-    updateSizeUI(sizes);
-    startAnimation();
-}
-
-function createGluedPairs(part1, part2) {
-    console.log("createGluedPairs");
-
-    const type1 = part1.dataset.type;
-    const type2 = part2.dataset.type;
-    const setId1 = part1.dataset.setId;
-    const setId2 = part2.dataset.setId;
-
-    part1.remove();
-    part2.remove();
-
-    movers = movers.filter(m => m.part !== part1 && m.part !== part2);
-
-    const gluedGroup = document.createElement('div');
-    gluedGroup.className = 'glued-pair';
-    gluedGroup.dataset.isGluedPair = 'true';
-    gluedGroup.dataset.type1 = type1;
-    gluedGroup.dataset.type2 = type2;
-    gluedGroup.dataset.setId1 = setId1;
-    gluedGroup.dataset.setId2 = setId2;
-
-    gluedGroup.appendChild(part1);
-    gluedGroup.appendChild(part2);
-
-
-    part1.style.position = 'relative';
-    part1.style.left = '0';
-    part1.style.top = '0';
-    part1.style.margin = '0';
-
-    part2.style.position = 'relative';
-    part2.style.left = '0';
-    part2.style.top = '0';
-    part2.style.margin = '0';
-
-    part1.style.pointerEvents = 'none';
-    part2.style.pointerEvents = 'none';
-
-    const glueLabel = document.createElement('div');
-    glueLabel.className = 'glue-label';
-    glueLabel.textContent = 'Прибито!';
-    gluedGroup.appendChild(glueLabel);
-
-    tray.appendChild(gluedGroup);
-
-    const trayRect = tray.getBoundingClientRect();
-    const groupWidth = gluedGroup.offsetWidth;
-    const groupHeight = gluedGroup.offsetHeight;
-
-    gluedGroup.style.left = Math.random() * (trayRect.width - groupWidth - 20) + 10 + 'px';
-    gluedGroup.style.top = Math.random() * (trayRect.height - groupHeight - 20) + 10 + 'px';
-
-    const speed = (CONFIG.speed || 1) * 0.8;
-    const mover = {
-        part: gluedGroup,
-        x: parseFloat(gluedGroup.style.left),
-        y: parseFloat(gluedGroup.style.top),
-        vx: (Math.random() * 1.6 - 0.8) * speed,
-        vy: (Math.random() * 1.6 - 0.8) * speed,
-    };
-    movers.push(mover);
-
-    console.log('Создана склеенная пара:', type1, 'и', type2);
 }
 
 function makePart({ type, setId, size, dirty = false, isGlued = false }) {
@@ -363,8 +61,6 @@ function makePart({ type, setId, size, dirty = false, isGlued = false }) {
     part.appendChild(label);
     part.dataset.imageSetId = imageSetId;
     part.style.setProperty('--scale', size.scale);
-
-
 
     enableDrag(part);
 
@@ -513,7 +209,7 @@ function breakGluedPair(gluedGroup) {
     const trayRect = tray.getBoundingClientRect();
     const spacing = 20;
     const p1Width = newPart1.offsetWidth;
-    const p2Width = newPart2.offsetHeight;
+    const p2Width = newPart2.offsetWidth;
     const totalWidth = p1Width + spacing + p2Width;
     const margin = 10;
     const maxStartX = trayRect.width - totalWidth - 2 * margin;
@@ -545,19 +241,6 @@ function breakGluedPair(gluedGroup) {
     updateMover(newPart2, posX2, posY2);
 }
 
-
-function clearAll() {
-    console.log("clearAll");
-    stopAnimation();
-    tray.innerHTML = '';
-    if (wrappingTray) wrappingTray.innerHTML = '';
-    if (wrappingDoll) wrappingDoll.innerHTML = '';
-    shelf.innerHTML = '';
-    assembledGroups.clear();
-    wrappingGroups.clear();
-    currentWrappingDoll = null;
-    movers = [];
-}
 function enableDrag(part) {
     console.log("enableDrag");
     function getEventCoords(e) {
@@ -569,7 +252,7 @@ function enableDrag(part) {
         return { clientX: e.clientX, clientY: e.clientY };
     }
     function startDrag(e) {
-        if (dragging) return; 
+        if (dragging) return;
         if (lives <= 0) {
             return;
         }
@@ -628,7 +311,6 @@ function enableDrag(part) {
         moveAt(coords.clientX, coords.clientY);
         highlightTargets(part);
 
-        // Disable pointer events on other draggable elements to prevent interference
         document.querySelectorAll('.part, .assembled-group, .completed-doll, .wrapping-group, .glued-pair').forEach(el => {
             if (el !== part && !el.classList.contains('dragging')) {
                 el.style.pointerEvents = 'none';
@@ -672,7 +354,6 @@ function enableDrag(part) {
         finishDrag({ clientX: coords.clientX, clientY: coords.clientY });
         startAnimation();
 
-        // Restore pointer events on other draggable elements
         document.querySelectorAll('.part, .assembled-group, .completed-doll, .wrapping-group, .glued-pair').forEach(el => {
             el.style.pointerEvents = '';
         });
@@ -688,6 +369,7 @@ function enableDrag(part) {
     part.addEventListener('touchmove', moveDrag, { passive: false });
     part.addEventListener('touchend', endDrag, { passive: false });
 }
+
 function moveAt(x, y) {
     if (!dragging) return;
     const { part, offsetX, offsetY, allowedContainer } = dragging;
@@ -705,7 +387,6 @@ function moveAt(x, y) {
     const containerRect = allowedContainer.getBoundingClientRect();
     const partWidth = part.offsetWidth;
     const partHeight = part.offsetHeight;
-
 
     const minX = containerRect.left + offsetX;
     const maxX = containerRect.right - partWidth + offsetX;
@@ -750,9 +431,6 @@ function highlightTargets(draggedPart) {
     });
 }
 
-
-
-
 function placeInWrappingTray() {
     console.log("placeInWrappingTray");
     const parts = wrappingTray.querySelectorAll('.part');
@@ -769,7 +447,6 @@ function returnToWrappingTray(part) {
     wrappingTray.appendChild(part);
     placeInWrappingTray(part);
 }
-
 
 function finishDrag(e) {
     if (!dragging) return;
@@ -796,7 +473,6 @@ function finishDrag(e) {
         });
     }
 
-
     const dropX = e.clientX;
     const dropY = e.clientY;
     const containerRect = allowedContainer.getBoundingClientRect();
@@ -817,7 +493,6 @@ function finishDrag(e) {
     part.style.position = 'absolute';
     part.style.zIndex = '';
 
-    // Adjust position from viewport to container relative
     const currentLeft = parseFloat(part.style.left || '0');
     const currentTop = parseFloat(part.style.top || '0');
     part.style.left = `${currentLeft - containerRect.left}px`;
@@ -829,13 +504,12 @@ function finishDrag(e) {
 
     let attached = false;
 
-    // Find all elements under cursor
     const candidates = Array.from(document.querySelectorAll('.part, .assembled-group, .completed-doll, .wrapping-group, .glued-pair'));
     const hoveredElements = [];
     for (const element of candidates) {
         if (element.classList.contains('dragging') || element === part) continue;
         const rect = element.getBoundingClientRect();
-        const padding = 50; // Increased padding for easier dropping (only for correct parts)
+        const padding = 50;
         if (
             dropX >= rect.left - padding &&
             dropX <= rect.right + padding &&
@@ -846,13 +520,11 @@ function finishDrag(e) {
         }
     }
 
-    // Check for invalid drops without padding
     console.log('finish drag');
-    // First, check for wrapping
     for (const hoveredElement of hoveredElements) {
         if (CONFIG.allowWrapping && hoveredElement.classList.contains('completed-doll') &&
             hoveredElement.parentElement === wrappingDoll) {
-            console.log
+            console.log('wrapping');
             const draggedScale = parseFloat(part.style.getPropertyValue('--scale') || '1');
             const innerScale = parseFloat(hoveredElement.dataset.innerScale || '1');
             if (draggedScale > innerScale) {
@@ -897,7 +569,6 @@ function finishDrag(e) {
         let hoveredSetId = hoveredElement.dataset.setId;
         const allowedTargets = ATTACH_RULES[type] || [];
 
-
         const isSameSet = hoveredSetId === setId;
         const isStrictMatch = allowedTargets.includes(hoveredType);
         const groupExists = assembledGroups.has(setId);
@@ -934,7 +605,6 @@ function finishDrag(e) {
 
     dragging = null;
 }
-
 
 function findPartUnderCursor(x, y) {
     console.log("findPartUnderCursor");
@@ -1015,24 +685,18 @@ function wrapAroundDoll(newPart, completedDoll) {
     if (newType === 'head') {
         wrapGroup.head = newPart;
         newPart.style.height = `${72 * scale * 0.42}%`;
-        newPart.style.width = `auto`
-    }
-
-    else if (newType === 'body') {
+        newPart.style.width = `auto`;
+    } else if (newType === 'body') {
         wrapGroup.body = newPart;
         newPart.style.height = `${72 * scale * 0.33}%`;
         newPart.style.width = `auto`;
-
-    }
-    else if (newType === 'base') {
+    } else if (newType === 'base') {
         wrapGroup.base = newPart;
         newPart.style.height = `${72 * scale * 0.25}%`;
         newPart.style.width = `auto`;
-
     }
     newPart.style.position = 'absolute';
     newPart.style.pointerEvents = 'auto';
-
 
     wrapGroup.container.appendChild(newPart);
     removeMover(newPart);
@@ -1043,27 +707,30 @@ function wrapAroundDoll(newPart, completedDoll) {
         const part2 = parts[1];
         const type1 = part1.dataset.type === 'head' ? '1' : part1.dataset.type === 'body' ? '2' : '3';
         const type2 = part2.dataset.type === 'head' ? '1' : part2.dataset.type === 'body' ? '2' : '3';
-        const imageName = `img/matr${wrapGroup.outerSetId % 3 + 1}${type1}${type2}.png`;
-        // Create image element
+        const imageName = `../img/matr${wrapGroup.outerSetId % 3 + 1}${type1}${type2}.png`;
         const combinedImg = document.createElement('img');
         combinedImg.src = imageName;
         combinedImg.className = 'combined-image completed-doll-img';
-        if (type1 === '1') {
+        if (type1 === '1' && type2 === '2') {
             combinedImg.style.height = `${72 * 0.76 * scale}%`;
             combinedImg.style.top = '0%';
-
-        } else {
+            console.log(72 * 0.76 * scale);
+        }
+        else if (type1 === '2' && type2 === '3') {
             combinedImg.style.height = `${72 * 0.58 * scale}%`;
             combinedImg.style.bottom = '0%';
+        }
+        else {
+            combinedImg.style.height = `${72 * scale}%`;
+            combinedImg.style.top = '50%';
+            combinedImg.style.transform = 'translate(-50%, -50%)';
 
         }
 
-        // Remove parts and add image
         wrapGroup.container.innerHTML = '';
         wrapGroup.container.appendChild(wrapGroup.innerDoll);
         wrapGroup.container.appendChild(combinedImg);
 
-        // Mark as combined
         wrapGroup.combined = true;
         wrapGroup.combinedImage = imageName;
         wrapGroup.parts = [part1, part2];
@@ -1072,19 +739,15 @@ function wrapAroundDoll(newPart, completedDoll) {
         checkWrappingComplete(wrapGroup);
     }
 }
+
 function positionWrappingGroup(wrapGroup) {
     if (!wrapGroup.container || !wrapGroup.innerDoll) return;
     const parts = [wrapGroup.head, wrapGroup.body, wrapGroup.base].filter(Boolean);
 
     if (parts.length === 0) return;
 
-    // Убираем все inline стили и используем CSS классы
     wrapGroup.container.className = 'wrapping-group';
     wrapGroup.innerDoll.className = 'completed-doll inner-doll';
-
-    // Просто добавляем все части в контейнер в правильном порядке
-    // CSS сам позаботится о позиционировании
-
 
     wrapGroup.container.innerHTML = '';
 
@@ -1104,7 +767,6 @@ function positionWrappingGroup(wrapGroup) {
         wrapGroup.container.appendChild(wrapGroup.body);
     }
 
-    // Добавляем части в правильном порядке для z-index
     if (wrapGroup.head) {
         wrapGroup.head.className = 'part part-head wrapping-part';
         wrapGroup.head.style.position = 'absolute';
@@ -1113,19 +775,16 @@ function positionWrappingGroup(wrapGroup) {
         wrapGroup.container.appendChild(wrapGroup.head);
     }
 
-
-
-    // Добавляем внутреннюю матрешку
     wrapGroup.innerDoll.style.position = 'absolute';
     wrapGroup.innerDoll.style.left = '';
     wrapGroup.innerDoll.style.top = '';
     wrapGroup.container.appendChild(wrapGroup.innerDoll);
 
-    // Устанавливаем дата-атрибуты для CSS
     wrapGroup.container.dataset.hasHead = !!wrapGroup.head;
     wrapGroup.container.dataset.hasBody = !!wrapGroup.body;
     wrapGroup.container.dataset.hasBase = !!wrapGroup.base;
 }
+
 function tryMoveNextFromQueue() {
     if (currentWrappingDoll || waitingDolls.length === 0) return;
     const next = waitingDolls.shift();
@@ -1135,6 +794,7 @@ function tryMoveNextFromQueue() {
         placeInWrappingDoll(next.doll, next.scale);
     }
 }
+
 function checkWrappingComplete(wrapGroup) {
     if (wrapGroup.head && wrapGroup.body && wrapGroup.base) {
         const outerScale = parseFloat(wrapGroup.head.style.getPropertyValue('--scale') || '1');
@@ -1168,6 +828,7 @@ function checkWrappingComplete(wrapGroup) {
         }
     }
 }
+
 function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
     const doll = document.createElement('div');
     doll.className = 'assembled-group completed-doll';
@@ -1175,7 +836,6 @@ function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
     doll.dataset.type = 'completed';
     doll.style.width = '100%';
     doll.style.height = '100%';
-
 
     doll.dataset.innerScale = scale;
     console.log(doll.dataset.innerScale);
@@ -1186,7 +846,7 @@ function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
     }
 
     const img = document.createElement('img');
-    img.src = `img/matr${imageSetId}.png`;
+    img.src = `../img/matr${imageSetId}.png`;
     img.style.width = `${72 * scale}%`;
     img.style.height = `${72 * scale}%`;
     console.log(img.style.width);
@@ -1202,42 +862,6 @@ function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
     return doll;
 }
 
-let completedDollMovers = [];
-function createWrappingParts(innerScale) {
-    if (!wrappingTray) return;
-    const dolls = wrappingTray.querySelectorAll('.completed-doll');
-    wrappingTray.innerHTML = '';
-    dolls.forEach(doll => wrappingTray.appendChild(doll));
-    const largerSizes = SIZES.filter(s => s.scale > innerScale);
-    if (largerSizes.length === 0) return;
-    const wrappingSize = largerSizes[0];
-    const wrappingSetId = setIdCounter++;
-    ['head', 'body', 'base'].forEach((type) => {
-        const part = document.createElement('div');
-        part.className = `part part-${type} wrapping-part`;
-        part.dataset.type = type;
-        part.dataset.setId = wrappingSetId;
-        part.style.position = 'relative';
-        part.style.cursor = 'grab';
-        const imageSetId = (wrappingSetId % 3) + 1;
-        const imageUrl = IMAGE_SETS[imageSetId][type];
-        const img = document.createElement('img');
-        img.src = imageUrl;
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'contain';
-        img.style.userSelect = 'none';
-        img.style.pointerEvents = 'none';
-        const label = document.createElement('span');
-        label.textContent = `${wrappingSize.label}`;
-        part.appendChild(img);
-        part.appendChild(label);
-        part.dataset.imageSetId = imageSetId;
-        part.style.setProperty('--scale', wrappingSize.scale);
-        enableDrag(part);
-        wrappingTray.appendChild(part);
-    });
-}
 function attachParts(part1, part2) {
     const type1 = part1.dataset.type;
     const type2 = part2.dataset.type;
@@ -1290,6 +914,7 @@ function attachParts(part1, part2) {
     positionGroup(group);
     checkGroupComplete(group, setId);
 }
+
 function positionGroup(group) {
     if (!group.container) return;
     const parts = [group.head, group.body, group.base].filter(Boolean);
@@ -1356,6 +981,7 @@ function positionGroup(group) {
     group.container.style.top = `${group.y}px`;
     parts.forEach((part) => removeMover(part));
 }
+
 function detachFromGroup(part) {
     const setId = part.dataset.setId;
     const group = assembledGroups.get(setId);
@@ -1382,11 +1008,13 @@ function detachFromGroup(part) {
     tray.appendChild(part);
     placeInTray(part);
 }
+
 function isPartInCompleteGroup(part) {
     const setId = part.dataset.setId;
     const group = assembledGroups.get(setId);
     return group && group.head && group.body && group.base;
 }
+
 function checkGroupComplete(group, setId) {
     if (group.head && group.body && group.base) {
         const scale = parseFloat(group.head.style.getPropertyValue('--scale') || '1');
@@ -1416,20 +1044,17 @@ function checkGroupComplete(group, setId) {
         if (!currentWrappingDoll) {
             matryoshkaImg.style.width = `${72 * scale}%`;
             matryoshkaImg.style.height = `${72 * scale}%`;
-
             completedDoll.style.width = `100%`;
             completedDoll.style.height = `100%`;
-        }
-        else {
+        } else {
             matryoshkaImg.style.width = '100px';
             matryoshkaImg.style.height = '150px';
         }
-        matryoshkaImg.src = `img/matr${imageSetId}.png`;
+        matryoshkaImg.src = `../img/matr${imageSetId}.png`;
         matryoshkaImg.style.objectFit = 'contain';
         matryoshkaImg.style.transformOrigin = 'center';
         matryoshkaImg.style.pointerEvents = 'none';
         completedDoll.appendChild(matryoshkaImg);
-
 
         updateProgressUI();
 
@@ -1446,14 +1071,12 @@ function checkGroupComplete(group, setId) {
         } else {
             waitingDolls.push({ doll: completedDoll, scale, imageSetId });
             placeInMainTrayFloating(completedDoll, scale);
-
         }
 
         if (built >= CONFIG.goal) {
             setTimeout(() => showWinModal(), 500);
         }
         console.log(scale);
-
     }
 }
 
@@ -1488,6 +1111,7 @@ function placeInMainTrayFloating(doll, scale) {
         scale
     });
 }
+
 function generateNextWrappingParts(currentScale) {
     if (!wrappingTray) return;
     wrappingTray.querySelectorAll('.part').forEach(p => p.remove());
@@ -1549,7 +1173,7 @@ function buildDoll(dollInfo) {
     const scale = dollInfo.scale;
 
     const matryoshkaImg = document.createElement('img');
-    matryoshkaImg.src = `img/matr${imageSetId}.png`;
+    matryoshkaImg.src = `../img/matr${imageSetId}.png`;
     matryoshkaImg.alt = 'Матрёшка';
     matryoshkaImg.style.width = '130px';
     matryoshkaImg.style.height = 'auto';
@@ -1579,42 +1203,17 @@ function buildDoll(dollInfo) {
 
 function showDollLayers(dollInfo) {
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.id = 'layersModal';
-    modal.style.display = 'flex';
-    modal.style.alignItems = 'center';
-    modal.style.justifyContent = 'center';
-    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    modal.style.position = 'fixed';
-    modal.style.top = '0';
-    modal.style.left = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.zIndex = '2000';
+    modal.className = 'layers-modal-overlay';
 
     const modalContent = document.createElement('div');
-    modalContent.className = 'modal-content';
-    modalContent.style.backgroundColor = '#fff';
-    modalContent.style.padding = '30px';
-    modalContent.style.borderRadius = '15px';
-    modalContent.style.maxWidth = '800px';
-    modalContent.style.width = '90%';
-    modalContent.style.maxHeight = '80%';
-    modalContent.style.overflowY = 'auto';
-    modalContent.style.position = 'relative';
+    modalContent.className = 'layers-modal-content';
 
     const title = document.createElement('h2');
+    title.className = 'layers-modal-title';
     title.textContent = 'Вложенные матрёшки';
-    title.style.textAlign = 'center';
-    title.style.marginBottom = '20px';
-    title.style.color = '#333';
 
     const layersContainer = document.createElement('div');
-    layersContainer.style.display = 'flex';
-    layersContainer.style.flexWrap = 'wrap';
-    layersContainer.style.gap = '20px';
-    layersContainer.style.justifyContent = 'center';
-    layersContainer.style.alignItems = 'center';
+    layersContainer.className = 'layers-container';
 
     const allParts = dollInfo.parts.slice();
 
@@ -1622,17 +1221,10 @@ function showDollLayers(dollInfo) {
 
     allParts.forEach((imageSetId, index) => {
         const layerItem = document.createElement('div');
-        layerItem.style.display = 'flex';
-        layerItem.style.flexDirection = 'column';
-        layerItem.style.alignItems = 'center';
-        layerItem.style.gap = '10px';
+        layerItem.className = 'layer-item';
 
         const img = document.createElement('img');
-        img.src = `img/matr${imageSetId}.png`;
-        img.style.width = '100px';
-        img.style.height = 'auto';
-        img.style.objectFit = 'contain';
-        img.style.transition = 'transform 0.3s ease';
+        img.src = `../img/matr${imageSetId}.png`;
 
         img.addEventListener('mouseenter', () => {
             img.classList.add('img-rocking');
@@ -1640,15 +1232,12 @@ function showDollLayers(dollInfo) {
 
         img.addEventListener('mouseleave', () => {
             img.classList.remove('img-rocking');
-            // Возвращаем в исходное положение
             img.style.transform = 'rotate(0deg)';
         });
 
-
         const label = document.createElement('span');
+        label.className = 'layer-label';
         label.textContent = `Слой ${allParts.length - index}`;
-        label.style.fontSize = '16px';
-        label.style.color = '#666';
 
         layerItem.appendChild(img);
         layerItem.appendChild(label);
@@ -1656,16 +1245,8 @@ function showDollLayers(dollInfo) {
     });
 
     const closeBtn = document.createElement('button');
+    closeBtn.className = 'layers-close-btn';
     closeBtn.textContent = 'Закрыть';
-    closeBtn.style.marginTop = '30px';
-    closeBtn.style.padding = '10px 30px';
-    closeBtn.style.backgroundColor = '#8b4513';
-    closeBtn.style.color = 'white';
-    closeBtn.style.border = 'none';
-    closeBtn.style.borderRadius = '5px';
-    closeBtn.style.cursor = 'pointer';
-    closeBtn.style.display = 'block';
-    closeBtn.style.margin = '20px auto 0';
 
     closeBtn.addEventListener('click', () => {
         modal.remove();
@@ -1685,70 +1266,6 @@ function showDollLayers(dollInfo) {
     document.body.appendChild(modal);
 }
 
-
-if (generateBtn) generateBtn.addEventListener('click', generateSet);
-if (clearBtn) clearBtn.addEventListener('click', clearAll);
-
-
-if (tray && shelf) {
-    initializeLevel();
-}
-function loseLife(reason) {
-    if (lives <= 0) return;
-    lives -= 1;
-    updateLivesUI();
-    if (lives <= 0) {
-        CONFIG.time = 0;
-        setTimeout(() => {
-            showLoseModal(reason);
-        }, 500);
-    }
-}
-function resetLives() {
-    lives = CONFIG.lives || 3;
-    updateLivesUI();
-}
-function updateLivesUI() {
-    if (livesEl) livesEl.textContent = '❤'.repeat(lives);
-}
-function updateSizeUI(list = []) {
-    if (!list.length) {
-        if (sizeLabel) sizeLabel.textContent = 'Разные';
-        return;
-    }
-    if (sizeLabel) sizeLabel.textContent = list.join(', ');
-}
-function updateProgressUI() {
-    if (progressEl) progressEl.textContent = `${built} / ${CONFIG.goal}`;
-    if (built >= CONFIG.goal && CONFIG.next) {
-        stopTimer();
-    }
-}
-
-function initializeLevel() {
-    const originalConfig = getLevelConfig();
-    CONFIG.time = originalConfig.time;
-    CONFIG.lives = originalConfig.lives;
-    CONFIG.goal = originalConfig.goal;
-    CONFIG.setsPerGeneration = originalConfig.setsPerGeneration;
-    CONFIG.speed = originalConfig.speed;
-    CONFIG.allowWrapping = originalConfig.allowWrapping;
-    CONFIG.next = originalConfig.next;
-    levelNameEl.textContent = CONFIG.name;
-
-    built = 0;
-    collectedMatryoshkas = 0;
-    assembledDollsHistory = [];
-    dollIndex = 1;
-
-    updateProgressUI();
-    gameStartTime = Date.now();
-    lives = CONFIG.lives;
-    setupModalHandlers();
-    generateSet();
-    startAnimation();
-    startTimer();
-}
 function placeInTray(part) {
     const trayRect = tray.getBoundingClientRect();
     const maxX = trayRect.width - part.offsetWidth;
@@ -1767,15 +1284,16 @@ function placeInTray(part) {
     };
     movers.push(mover);
 }
+
 function removeMover(part) {
     movers = movers.filter((m) => m.part !== part);
 }
+
 function moveParts() {
     const rect = tray.getBoundingClientRect();
     const contentWidth = tray.clientWidth;
     const contentHeight = tray.clientHeight;
 
-    // 1. Движение отдельных деталей в основной панели (partsTray)
     movers.forEach((m) => {
         if (isPartInGroup(m.part)) {
             removeMover(m.part);
@@ -1798,7 +1316,6 @@ function moveParts() {
         m.part.style.top = `${m.y}px`;
     });
 
-    // 2. Движение частично собранных групп в основной панели
     assembledGroups.forEach((group, setId) => {
         if (!group.container || isPartInCompleteGroup(group.head || group.body || group.base)) return;
 
@@ -1820,7 +1337,6 @@ function moveParts() {
         group.container.style.top = `${group.y}px`;
     });
 
-    // 3. Движение готовых матрешек в ОСНОВНОЙ панели (тех, что в очереди ожидания)
     completedDollMovers.forEach((m, index) => {
         if (m.element.parentElement === wrappingDoll) {
             completedDollMovers.splice(index, 1);
@@ -1851,262 +1367,22 @@ function moveParts() {
         m.element.style.top = `${m.y}px`;
     });
 
-    // 4. Рекурсивный вызов для следующего кадра анимации
     animationId = requestAnimationFrame(moveParts);
 }
+
 function isPartInGroup(part) {
     if (!part) return false;
     const setId = part.dataset.setId;
     const group = assembledGroups.get(setId);
     return group && (group.head === part || group.body === part || group.base === part);
 }
+
 function startAnimation() {
     stopAnimation();
     animationId = requestAnimationFrame(moveParts);
 }
+
 function stopAnimation() {
     if (animationId) cancelAnimationFrame(animationId);
     animationId = null;
 }
-function startTimer() {
-    stopTimer();
-    let totalTime = CONFIG.time;
-    let timeLeft = totalTime;
-    updateTimerUI(timeLeft, totalTime);
-    timerInterval = setInterval(() => {
-        timeLeft--;
-        updateTimerUI(timeLeft, totalTime);
-        if (timeLeft <= 0) {
-            stopTimer();
-            setTimeout(() => {
-                showLoseModal('Время вышло');
-            }, 500);
-        }
-    }, 1000);
-}
-function stopTimer() {
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-    }
-}
-function updateTimerUI(sec, totalTime) {
-    const min = Math.floor(sec / 60);
-    const s = sec % 60;
-    if (timerEl) timerEl.textContent = `${min}:${s < 10 ? '0' : ''}${s}`;
-    if (timerProgressEl) timerProgressEl.value = (sec / totalTime) * 100;
-}
-function calculateTimeSpent() {
-    if (!gameStartTime) return 0;
-    return Math.floor((Date.now() - gameStartTime) / 1000);
-}
-function getCurrentTime() {
-    const timerText = timerEl.textContent;
-    const [min, sec] = timerText.split(':').map(Number);
-    return min * 60 + sec;
-}
-function formatTime(seconds) {
-    const min = Math.floor(seconds / 60);
-    const sec = seconds % 60;
-    return `${min}:${sec < 10 ? '0' : ''}${sec}`;
-}
-function calculateScore(matryoshkas, timeSpent, livesLeft) {
-    const baseScore = matryoshkas * 100;
-    const timeBonus = Math.max(0, CONFIG.time - timeSpent) * 10;
-    const livesBonus = livesLeft * 50;
-    return baseScore + timeBonus + livesBonus;
-}
-function saveGameStats(result, matryoshkas, time, lives, score) {
-    const playerName = localStorage.getItem('playerName') || 'Игрок';
-    const levelNum = parseInt(CONFIG.name.split(' ')[1]);
-    let playerStats = JSON.parse(localStorage.getItem(`playerStats_${playerName}`) || '{}');
-    playerStats[`level${levelNum}`] = {
-        result,
-        matryoshkas,
-        time,
-        lives,
-        score,
-        date: new Date().toISOString()
-    };
-    localStorage.setItem(`playerStats_${playerName}`, JSON.stringify(playerStats));
-    const stats = {
-        result,
-        level: CONFIG.name,
-        matryoshkas,
-        time,
-        lives,
-        score,
-        date: new Date().toISOString(),
-        player: playerName
-    };
-    localStorage.setItem('lastGameStats', JSON.stringify(stats));
-
-    if (result === 'win') {
-        updateLeaderboard(playerName, score);
-    }
-}
-
-function updateLeaderboard(playerName, score) {
-    const playerStats = JSON.parse(localStorage.getItem(`playerStats_${playerName}`) || '{}');
-    let totalScore = 0;
-    for (const level in playerStats) {
-        if (playerStats[level].result === 'win') {
-            totalScore += playerStats[level].score;
-        }
-    }
-
-    let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-    const existing = leaderboard.find(entry => entry.name === playerName);
-    if (existing) {
-        existing.score = totalScore;
-        existing.date = new Date().toISOString();
-    } else {
-        leaderboard.push({ name: playerName, score: totalScore, date: new Date().toISOString() });
-    }
-    leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard = leaderboard.slice(0, 10); // топ 10
-    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-}
-
-function loadLeaderboard() {
-    const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-    const container = document.getElementById('leaderboard');
-    if (!container) return;
-    container.innerHTML = '';
-    if (leaderboard.length === 0) {
-        container.innerHTML = '<p>Пока нет результатов</p>';
-        return;
-    }
-    leaderboard.forEach((entry, index) => {
-        const item = document.createElement('div');
-        item.className = 'leaderboard-item';
-        item.innerHTML = `
-            <span class="leaderboard-name">${index + 1}. ${entry.name}</span>
-            <span class="leaderboard-score">${entry.score}</span>
-        `;
-        container.appendChild(item);
-    });
-}
-function startConfetti() {
-    const container = document.getElementById('confetti-container');
-    if (!container) {
-        console.error('Confetti container not found');
-        return;
-    }
-    container.style.display = 'block';
-    container.innerHTML = '';
-    const colors = ['#ff9aa2', '#8ec5ff', '#6adf9b', '#f6a93b', '#8b5cf6', '#ffd58a'];
-    for (let i = 0; i < 100; i++) {
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.backgroundColor = color;
-        const size = Math.random() * 8 + 4;
-        confetti.style.width = `${size}px`;
-        confetti.style.height = `${size}px`;
-        confetti.style.left = `${Math.random() * 100}%`;
-        confetti.style.top = `-10px`;
-        const duration = Math.random() * 2 + 3;
-        const delay = Math.random() * 1;
-        confetti.style.animation = `fall ${duration}s ease-out ${delay}s forwards`;
-        container.appendChild(confetti);
-        setTimeout(() => {
-            if (confetti.parentNode) {
-                confetti.remove();
-            }
-        }, (duration + delay) * 1000 + 100);
-    }
-}
-function setupModalHandlers() {
-    document.getElementById('nextLevelBtn').addEventListener('click', () => {
-        if (CONFIG.next) {
-            window.location.href = CONFIG.next;
-        } else {
-            window.location.href = 'index.html';
-        }
-    });
-    document.getElementById('restartLevelBtn').addEventListener('click', () => {
-        hideModals();
-        initializeLevel();
-    });
-    document.getElementById('mainMenuBtn').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
-    document.getElementById('restartAfterLoseBtn').addEventListener('click', () => {
-        hideModals();
-        initializeLevel();
-    });
-    document.getElementById('mainMenuLoseBtn').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
-    document.querySelectorAll('.modal-overlay').forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                hideModals();
-            }
-        });
-    });
-}
-function hideModals() {
-    document.getElementById('winModal').style.display = 'none';
-    document.getElementById('loseModal').style.display = 'none';
-}
-function resetGame() {
-    stopTimer();
-    const originalConfig = getLevelConfig();
-    CONFIG.time = originalConfig.time;
-    updateTimerUI(CONFIG.time, CONFIG.time);
-    stopAnimation();
-    clearAll();
-    lives = CONFIG.lives;
-    built = 0;
-    collectedMatryoshkas = 0;
-    dollIndex = 1;
-    completedDollMovers = [];
-    updateLivesUI();
-    updateProgressUI();
-    gameStartTime = Date.now();
-}
-function startGame() {
-    generateSet();
-    startAnimation();
-    startTimer();
-}
-
-
-
-const startGameBtn = document.getElementById('startGame');
-if (startGameBtn) {
-    startGameBtn.addEventListener('click', () => {
-        const inputPlayerName = document.getElementById('playerName').value.trim() || 'Игрок';
-
-
-        if (inputPlayerName.length < 2) {
-            alert('Пожалуйста, введите имя (минимум 2 символа)');
-            return;
-        }
-
-        localStorage.setItem('playerName', inputPlayerName);
-
-
-        window.location.href = 'level1.html';
-    });
-}
-
-const playerNameInput = document.getElementById('playerName');
-if (playerNameInput) {
-    playerNameInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            document.getElementById('startGame').click();
-        }
-    });
-}
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'и' || e.key === 'И' || e.key === 'b' || e.key === 'B') {
-        const note = document.getElementById('levelNote');
-        if (note) {
-            note.style.display = 'block';
-        }
-    }
-});

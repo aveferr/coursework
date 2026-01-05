@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Сборка матрешки — Уровень 2</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="matrs.css" />
+  <title>Сборка матрешки — Уровень 3</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/matrs.css" />
 </head>
 
 <body>
@@ -14,7 +14,7 @@
     <div class="main-content">
       <header class="panel">
         <nav class="levels">
-          <a href="index.html">Главная</a>
+          <a href="../index.html">Главная</a>
           <a id="level1Link" href="level1.html">Уровень 1</a>
           <a id="level2Link" href="level2.html">Уровень 2</a>
           <a id="level3Link" href="level3.html">Уровень 3</a>
@@ -47,7 +47,6 @@
       </section>
       <section class="panel workspace">
         <div class="workspace-split">
-          <!-- Левая часть: оборачивание -->
           <div class="column wrapping-area">
             <h2>Оборачивание матрешки</h2>
             <p class="muted">Используйте детали сверху, чтобы обернуть готовую матрешку.</p>
@@ -63,12 +62,21 @@
             <p class="muted">Детали двигаются в боксе. Поймайте нужные и скрепляйте их друг с другом — голова к
               туловищу,
               туловище к основанию.</p>
+             
             <div class="row">
               <button id="generateParts">Сгенерировать набор</button>
               <button id="clearParts" class="ghost">Очистить детали</button>
+               <div id="toolsPanel" class="tools-panel">
+                <div class="tool" data-tool="sponge" title="Губка — очистить грязь">
+                  <img src="../img/sponge.png" alt="Губка">
+                </div>
+                <div class="tool" data-tool="hammer" title="Молоток — разбить неправильную сборку">
+                  <img src="../img/hammer.png" alt="Молоток">
+                </div>
+              </div>
             </div>
+
             <div id="partsTray" class="parts-tray"></div>
-          </div>
       </section>
     </div>
     <section class="panel shelf-panel">
@@ -78,7 +86,6 @@
       </div>
     </section>
   </div>
-  <!-- Модальное окно победы -->
   <div id="winModal" class="modal-overlay">
     <div class="modal-content win-modal">
       <div class="modal-icon">🎉</div>
@@ -116,7 +123,6 @@
     </div>
   </div>
 
-  <!-- Модальное окно поражения -->
   <div id="loseModal" class="modal-overlay">
     <div class="modal-content lose-modal">
       <div class="modal-icon">😢</div>
@@ -145,19 +151,19 @@
     </div>
   </div>
 
-  <!-- Контейнер для конфетти (фейерверков) -->
   <div id="confetti-container"></div>
 
-  <!-- Записка для уровня 2 -->
   <div id="levelNote" style="display: none;">
     <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1000; max-width: 400px;">
-      <h3>Уровень 2</h3>
-      <p>Ваша задача снова собрать матрешки, как в уровне 1. После того, как соберете, матрешка переместится в поле "Оборачивание". Там оборачивайте матрешку до тех пор, пока она не станет большого размера.</p>
+      <h3>Уровень 3.</h3>
+      <p>Ваша задача снова собрать и обернуть матрешки, как в уровнях 1 и 2. Только теперь детальки пыльные и неверно прибитые. Очистите и разъедините их, используя молоток и губку.</p>
       <button onclick="document.getElementById('levelNote').style.display='none'">Закрыть</button>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/parts.js"></script>
+  <script src="../js/game.js"></script>
 </body>
 
 </html>

@@ -19,6 +19,7 @@ function makeWrappingPart({ type, setId, size }) {
     const imageUrl = IMAGE_SETS[imageSetId][type];
     const img = document.createElement('img');
     img.src = imageUrl;
+    img.alt = `Деталь матрёшки ${type}`;
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'contain';
@@ -691,6 +692,7 @@ function wrapAroundDoll(newPart, completedDoll) {
         const imageName = `../img/matr${wrapGroup.outerSetId % 3 + 1}${type1}${type2}.png`;
         const combinedImg = document.createElement('img');
         combinedImg.src = imageName;
+        combinedImg.alt = 'Комбинированная матрёшка';
         combinedImg.className = 'combined-image completed-doll-img';
         if (type1 === '1' && type2 === '2') {
             combinedImg.style.height = `${72 * 0.76 * scale}%`;
@@ -828,6 +830,7 @@ function createCompletedDollFromWrap(wrapGroup, scale, imageSetId) {
 
     const img = document.createElement('img');
     img.src = `../img/matr${imageSetId}.png`;
+    img.alt = `Собранная матрёшка`;
     img.style.width = `${72 * scale}%`;
     img.style.height = `${72 * scale}%`;
     console.log(img.style.width);
@@ -1032,6 +1035,7 @@ function checkGroupComplete(group, setId) {
             matryoshkaImg.style.height = '150px';
         }
         matryoshkaImg.src = `../img/matr${imageSetId}.png`;
+        matryoshkaImg.alt = `Собранная матрёшка`;
         matryoshkaImg.style.objectFit = 'contain';
         matryoshkaImg.style.transformOrigin = 'center';
         matryoshkaImg.style.pointerEvents = 'none';
@@ -1206,6 +1210,7 @@ function showDollLayers(dollInfo) {
 
         const img = document.createElement('img');
         img.src = `../img/matr${imageSetId}.png`;
+        img.alt = `Матрёшка слой ${allParts.length - index}`;
 
         img.addEventListener('mouseenter', () => {
             img.classList.add('img-rocking');

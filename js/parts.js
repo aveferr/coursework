@@ -80,11 +80,6 @@ function enableToolDrag(tool) {
     tool.style.cursor = 'grab';
 
     function getToolEventCoords(e) {
-        if (e.touches && e.touches.length > 0) {
-            return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
-        } else if (e.changedTouches && e.changedTouches.length > 0) {
-            return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
-        }
         return { clientX: e.clientX, clientY: e.clientY };
     }
 
@@ -146,18 +141,13 @@ function enableToolDrag(tool) {
 
             document.removeEventListener('pointermove', move);
             document.removeEventListener('pointerup', up);
-            document.removeEventListener('touchmove', move);
-            document.removeEventListener('touchend', up);
         };
 
         document.addEventListener('pointermove', move);
         document.addEventListener('pointerup', up, { once: true });
-        document.addEventListener('touchmove', move, { passive: false });
-        document.addEventListener('touchend', up, { once: true });
     }
 
     tool.addEventListener('pointerdown', startToolDrag);
-    tool.addEventListener('touchstart', startToolDrag, { passive: false });
 }
 
 function breakGluedPair(gluedGroup) {
@@ -244,11 +234,6 @@ function breakGluedPair(gluedGroup) {
 function enableDrag(part) {
     console.log("enableDrag");
     function getEventCoords(e) {
-        if (e.touches && e.touches.length > 0) {
-            return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
-        } else if (e.changedTouches && e.changedTouches.length > 0) {
-            return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
-        }
         return { clientX: e.clientX, clientY: e.clientY };
     }
     function startDrag(e) {
@@ -364,10 +349,6 @@ function enableDrag(part) {
     part.addEventListener('pointerdown', startDrag);
     part.addEventListener('pointermove', moveDrag);
     part.addEventListener('pointerup', endDrag);
-
-    part.addEventListener('touchstart', startDrag, { passive: false });
-    part.addEventListener('touchmove', moveDrag, { passive: false });
-    part.addEventListener('touchend', endDrag, { passive: false });
 }
 
 function moveAt(x, y) {

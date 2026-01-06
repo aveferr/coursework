@@ -51,6 +51,7 @@ function makePart({ type, setId, size, dirty = false, isGlued = false }) {
     const imageUrl = IMAGE_SETS[imageSetId][type];
     const img = document.createElement('img');
     img.src = imageUrl;
+    img.alt = `Деталь матрёшки ${type}`;
     img.style.width = '100%';
     img.style.height = '100%';
     img.style.objectFit = 'contain';

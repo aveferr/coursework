@@ -234,7 +234,6 @@ function breakGluedPair(gluedGroup) {
 }
 
 function enableDrag(part) {
-    console.log("enableDrag");
     function getEventCoords(e) {
         return { clientX: e.clientX, clientY: e.clientY };
     }
@@ -1277,7 +1276,6 @@ function removeMover(part) {
 }
 
 function moveParts() {
-    const rect = tray.getBoundingClientRect();
     const contentWidth = tray.clientWidth;
     const contentHeight = tray.clientHeight;
 
